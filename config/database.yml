@@ -1,0 +1,12 @@
+development: &defaults
+  adapter: postgresql
+  database: laeron_development
+  host: localhost
+
+test:
+  <<: *defaults
+  database: laeron_test
+
+production:
+  <<: *defaults
+  database: laeron
