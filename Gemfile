@@ -11,7 +11,7 @@ gem "activerecord"
 
 gem "activesupport"
 
-gem "bcrypt-ruby"
-gem "eleetscript", "~> 0.0.3a"
+gem "bcrypt-ruby", require: "bcrypt"
+gem "eleetscript", "~> 0.0.4a"
 
 gem "pry"

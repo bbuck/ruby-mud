@@ -10,11 +10,11 @@ require "active_record"
 # Files
 require "configuration"
 require "laeron"
+Laeron.require_all(Laeron.root.join("lib", "utils", "**", "*"))
+Laeron.require_all(Laeron.root.join("lib", "extensions", "**", "*"))
 
 # Load models
-Dir.glob(Laeron.root.join("lib/models/**/*")).each do |model_file|
-  require model_file
-end
+Laeron.require_all(Laeron.root.join("lib", "models", "**", "*"))
 
 begin
   ActiveRecord::Base.connection
