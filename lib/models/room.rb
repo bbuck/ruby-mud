@@ -50,6 +50,17 @@ class Room < ActiveRecord::Base
     player.update_attributes(room: self)
   end
 
+  def player_leaves(player, dir)
+    from_dir = EXITS_PROPER[dir]
+    if from_dir == "above"
+      transmit("[f:green]#{player.username} leaves up.")
+    elsif from_dir == "below"
+      transmit("[f:green]#{player.username} leaves #{from_dir}.")
+    else
+      transmit("[f:green]#{player.username} leaves to #{from_dir}.")
+    end
+  end
+
   def transmit(message)
     players_in_room_ids.each do |pid|
       if Player.connections[pid]
@@ -70,6 +81,7 @@ class Room < ActiveRecord::Base
     ROOM
 
     display += "\n#{player_string(player)}" if players_in_room.where("id <> ?", player.id).count > 0
+    display
   end
 
   private

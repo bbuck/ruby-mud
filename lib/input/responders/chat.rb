@@ -1,39 +1,30 @@
 InputManager.respond_to :standard do
   parse_input_with /say (.+)/ do |conn, message|
     message = message.purge_colors
-    Player.connection_list.each do |c|
-      c.send_text("[f:cyan:b]#{conn.player.username} says, \"#{message}\"")
-    end
+    conn.player.room.transmit("[f:cyan:b]#{conn.player.username} says, \"#{message}\"")
   end
 
   parse_input_with /yell (.+)/ do |conn, message|
     message = message.purge_colors
-    Player.connection_list.each do |player_conn|
-      player_conn.send_text("[f:red:b]#{conn.player.username} yells \"#{message}\"")
-    end
+    yell = "[f:red:b]#{conn.player.username} yells, \"#{message}\""
+    Yell.new(yell, conn.player.room)
   end
 
   parse_input_with [/xme (.+)/,
                     /xpost (.+)/] do |conn, message|
     message = message.purge_colors
-    Player.connection_list.each do |player_conn|
-      player_conn.send_text("[f:green]#{message}")
-    end
+    conn.player.room.transmit("[f:green]#{message}")
   end
 
   parse_input_with [/me (.+)/,
                     /post (.+)/] do |conn, message|
     message = message.purge_colors
-    Player.connection_list.each do |player_conn|
-      player_conn.send_text("[f:green]#{conn.player.username} #{message}")
-    end
+    conn.player.room.transmit("[f:green]#{conn.player.username} #{message}")
   end
 
   parse_input_with /ooc (.+)/ do |conn, message|
     message = message.purge_colors
-    Player.connection_list.each do |player_conn|
-      player_conn.send_text("[OOC] #{conn.player.username} - [f:white:b]#{message}")
-    end
+    conn.player.room.transmit("[OOC] #{conn.player.username}: #{message}")
   end
 
   parse_input_with /general (.+)/ do |conn, message|
