@@ -1,4 +1,8 @@
 class String
+  def purge_colors
+    self.gsub(/\[reset\]/i, "").gsub(/\[[fb]:.+?\]/i, "")
+  end
+
   def colorize(include_reset = true)
     ret = self.gsub(/\[reset\]/i, ANSI::reset)
     ret = ret.gsub(/\[([fb]:(.+?))\]/) do

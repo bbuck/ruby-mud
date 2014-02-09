@@ -51,7 +51,13 @@ class InputManager
 
     def respond_to_state_with(state, regex, &block)
       return unless block_given?
-      (responders[state] ||= [])  << [regex, block]
+      if regex.is_a?(Array)
+        regex.each do |rx|
+          (responders[state] ||= []) << [rx, block]
+        end
+      else
+        (responders[state] ||= []) << [regex, block]
+      end
     end
 
     def respond_to(state, &block)

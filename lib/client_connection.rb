@@ -3,12 +3,22 @@ class ClientConnection < EM::Connection
 
   def initialize
     @input_state = :login
-    send_text("Welcome to the Laeron Chat Test, please enter your username or type \"new\"")
+    send_text(GameSetting.display_title)
+    send_text("Welcome to the Laeron, please enter your character's name or type \"new\"")
   end
 
   def receive_data(data)
     return quit if data =~ /quit|exit/i
-    InputManager.process(data, self)
+    valid = true
+    if data.length == 5
+      ords = data.chars.map { |chr| chr.ord }
+      valid &&= ords != [255, 244, 255, 253, 6]
+    end
+    if valid
+      InputManager.process(data, self)
+    else
+      InputManager.unknown_input(self)
+    end
   end
 
   def input_state=(value)
@@ -34,7 +44,10 @@ class ClientConnection < EM::Connection
   end
 
   def quit
-    send_text("\n\nThank you for playing!")
+    if player
+      Player.disconnect(player, self)
+    end
+    send_text("\n\n[f:yellow:b]Thank you for playing!")
     close_connection_after_writing
   end
 
