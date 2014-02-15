@@ -40,6 +40,12 @@ class Room < ActiveRecord::Base
 
   has_many :players_in_room, class_name: "Player"
 
+  class << self
+    def engines
+      @@engines ||= {}
+    end
+  end
+
   def player_appears(player)
     transmit("[f:green]#{player.username} appears magically.")
   end
@@ -47,6 +53,7 @@ class Room < ActiveRecord::Base
   def player_enters(player, dir)
     from_dir = EXITS_PROPER[EXITS_INVERSE[dir]]
     transmit("[f:green]#{player.username} enters from #{from_dir}.")
+    script_engine.call(:player_entered, player, dir)
     player.update_attributes(room: self)
   end
 
@@ -85,6 +92,18 @@ class Room < ActiveRecord::Base
   end
 
   private
+
+  def script_engine
+    @engine ||= begin
+      Room.engines[id] ||= begin
+        engine = ES::Engine.new
+        engine.execute(self.script || "")
+        engine
+      end
+    end
+  end
+
+  # --- Text Helpers ----------------------------------------------------------
 
   def player_string(viewing_player)
     players = []

@@ -54,6 +54,14 @@ class Player < ActiveRecord::Base
     Player.connections[id] && Player.connections[id].length > 0
   end
 
+  def connection
+    if online?
+      Player.connections[id].first
+    else
+      nil
+    end
+  end
+
   # Password functions
   def password
     @password || Password.new(password_hash)
