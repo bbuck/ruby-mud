@@ -2,6 +2,14 @@ module Laeron
   @@config = Configuration.new
 
   class << self
+    def version
+      "0.0.1 alpha"
+    end
+
+    def start_time
+      @@start_time ||= Time.now
+    end
+
     def env
       (ENV["LAERON_ENV"] || "development").downcase
     end
@@ -42,3 +50,5 @@ end
 
 # Plug for ActiveRecord, it's got a hard dependency on Rails
 Rails = Laeron
+
+Laeron.start_time

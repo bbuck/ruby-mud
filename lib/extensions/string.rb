@@ -3,7 +3,8 @@ class String
     self.gsub(/\[reset\]/i, "").gsub(/\[[fb]:.+?\]/i, "")
   end
 
-  def colorize(include_reset = true)
+  def colorize(opts = {})
+    opts = default_colorize_options.merge(opts)
     ret = self.gsub(/\[reset\]/i, ANSI::reset)
     ret = ret.gsub(/\[([fb]:(.+?))\]/) do
       code_tag = $1
@@ -17,7 +18,7 @@ class String
       end
       ANSI::send(method, bright)
     end
-    ret += ANSI::reset if include_reset
+    ret += ANSI::reset if opts[:include_reset]
     ret
   end
 
@@ -32,7 +33,7 @@ class String
         str += self[i..new_i]
         i = new_i
       elsif self[i] == "\n"
-        buffer << str
+        buffer << str + "\n"
         str = ""
         count = 0
       else
@@ -41,8 +42,9 @@ class String
       end
       if count == 80
         last_space = str.rindex(" ")
+        last_space ||= 0
         new_str = str[(last_space + 1)..-1]
-        buffer << str[0...last_space]
+        buffer << str[0...last_space] + "\n"
         str = new_str
         count = 0
       end
@@ -56,5 +58,11 @@ class String
     else
       buffer
     end
+  end
+
+  private
+
+  def default_colorize_options
+    {include_reset: true}
   end
 end

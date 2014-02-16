@@ -5,10 +5,11 @@ class GameSetting < ActiveRecord::Base
     end
 
     def display_title
-      content_title = instance.content_title.upcase.chars.join(" ").center(64)
-      content_title = "[reset][f:green]#{content_title}"
+      content_title = instance.content_title.upcase.chars.join(" ")
       game_title = instance.game_title
-      game_title.gsub(/<%\s{64}%>/, content_title)
+      game_title.gsub(/<%(\s+)%>/) do
+        "[reset][f:green]" + content_title.center($1.length)
+      end
     end
   end
 end

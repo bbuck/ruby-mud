@@ -3,13 +3,18 @@ class ClientConnection < EM::Connection
 
   def initialize
     @input_state = :login
-    send_text(GameSetting.display_title)
-    send_text("Welcome to the Laeron, please enter your character's name or type \"new\"")
+    @connected = Time.now
+    send_text("\n\nRunning LaeronMUD Server v#{Laeron.version}...", prompt: false)
+    time_diff = (Time.now - Laeron.start_time).round
+    send_text("uptime #{time_diff.long_time_string}...\n\n", prompt: false)
+    send_text(GameSetting.display_title, prompt: false)
+    send_text("Welcome to the Laeron, please enter your character's name or type \"new\"", prompt: false)
   end
 
   def receive_data(data)
-    return quit if data =~ /quit|exit/i
+    return quit if data =~ /\A(?:quit|exit)/i
     valid = true
+    # HACK: Hack to prevent broken input
     if data.length == 5
       ords = data.chars.map { |chr| chr.ord }
       valid &&= ords != [255, 244, 255, 253, 6]
@@ -28,18 +33,24 @@ class ClientConnection < EM::Connection
 
   def send_text(text, opts = {})
     opts = default_write_options.merge(opts)
-    text = clean_text(text).line_split unless opts[:raw]
+    text = text.colorize if opts[:colorize]
+    text = clean_text(text)
+    text = text.line_split unless opts[:raw]
     if text.is_a?(Array)
       last_line = text.pop
       last_line += "\n" if opts[:newline]
-      last_line += ANSI::reset
       text.each do |line|
-        send_data(line.colorize(false))
+        send_data(line)
       end
-      send_data(last_line.colorize(false))
+      send_data(last_line)
     else
       text += "\n" if opts[:newline]
-      send_data(clean_text(text).colorize)
+      send_data(text.colorize)
+    end
+    if opts[:prompt]
+      prompt = opts[:newline] ? "\n" : ""
+      prompt += "[f:green]PROMPT >>"
+      send_data("#{prompt}\n".colorize)
     end
   end
 
@@ -47,7 +58,9 @@ class ClientConnection < EM::Connection
     if player
       Player.disconnect(player, self)
     end
-    send_text("\n\n[f:yellow:b]Thank you for playing!")
+    time_diff = (Time.now - @connected).round
+    send_text("\n\n[f:yellow:b]Connected for #{time_diff.long_time_string}", prompt: false)
+    send_text("[f:yellow:b]Thank you for playing!\n\n", prompt: false)
     close_connection_after_writing
   end
 
@@ -58,6 +71,11 @@ class ClientConnection < EM::Connection
   end
 
   def default_write_options
-    Hash.new({ newline: true })
+    {
+      newline: true,
+      prompt: true,
+      colorize: true,
+      raw: false
+    }
   end
 end

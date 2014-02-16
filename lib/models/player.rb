@@ -3,6 +3,7 @@ class Player < ActiveRecord::Base
 
   has_many :tracking, class_name: "PlayerTracking"
   belongs_to :room
+  has_many :created_rooms, class_name: "Room", foreign_key: :creator_id
 
   scope :with_username, ->(username) { where("lower(username) = ?", username.downcase) }
   scope :online, -> { where(id: connections.keys) }
@@ -50,6 +51,14 @@ class Player < ActiveRecord::Base
     end
   end
 
+  # --- Helpers ---------------------------------------------------------------
+
+  def display_name
+    username
+  end
+
+  # --- Connection Helpers ----------------------------------------------------
+
   def online?
     Player.connections[id] && Player.connections[id].length > 0
   end
@@ -62,7 +71,8 @@ class Player < ActiveRecord::Base
     end
   end
 
-  # Password functions
+  # --- Password functions ----------------------------------------------------
+
   def password
     @password || Password.new(password_hash)
   end

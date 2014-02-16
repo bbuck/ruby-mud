@@ -1,23 +1,22 @@
-                                                                   [reset][f:cyan]/\/\
-                 [f:white:b]Copyright (c) [f:cyan:b]2014 [f:white:b]Brandon Buck                  [reset][f:cyan]/  \ \
-                                                                 [reset][f:cyan]/ /\ \ \
-                                                                 [reset][f:cyan]\/ /\/ /
-[f:white:b]S.       .S_SSSs      sSSs   .S_sSSs      sSSs_sSSs     .S_sSSs  [reset][f:cyan]/ /\/ /\
-[f:white:b]SS.     .SS~SSSSS    d%%SP  .SS~YS%%b    d%%SP~YS%%b   .SS~YS%%b[reset][f:cyan]/ /\ \/\ \
-[f:white:b]S%S     S%S   SSSS  d%S'    S%S   `S%b  d%S'     `S%b  S%S   `S%b[reset][f:cyan]/ /\ \ \ \
-[f:white:b]S%S     S%S    S%S  S%S     S%S    S%S  S%S       S%S  S%S  [reset][f:cyan]/\[f:white:b]S%S [reset][f:cyan]/ /\ \ \ \/\
-[f:white:b]S&S     S%S SSSS%S  S&S     S%S    d*S  S&S       S&S  S%S [reset][f:cyan]/  [f:white:b]S&S[reset][f:cyan]/ /  \ \ \ \ \
-[f:white:b]S&S     S&S  SSS%S  S&S_Ss  S&S   .S*S  S&S       S&S  S&S[reset][f:cyan]/ /\[f:white:b]S&S [reset][f:cyan]/    \ \/\ \ \
-[f:white:b]S&S     S&S    S&S  S&S~SP  S&S_sdSSS   S&S       S&S  S&S[reset][f:cyan]\/ /[f:white:b]S&S[reset][f:cyan]/      \/ /\/ /
-[f:white:b]S&S     S&S    S&S  S&S     S&S~YSY%b   S&S       S&S  S&S[reset][f:cyan]/ /\[f:white:b]S&S[reset][f:cyan]\      / /\/ /\
-[f:white:b]S*b     S*S    S&S  S*b     S*S   `S%b  S*b       d*S  S*S[reset][f:cyan]\ \ [f:white:b]S*S [reset][f:cyan]\    / /\ \/ /
-[f:white:b]S*S.    S*S    S*S  S*S.    S*S    S%S  S*S.     .S*S  S*S [reset][f:cyan]\ \[f:white:b]S*S[reset][f:cyan]\ \  / / /\  /
- [f:white:b]SSSbs  S*S    S*S   SSSbs  S*S    S&S   SSSbs_sdSSS   S*S  [reset][f:cyan]\/[f:white:b]S*S [reset][f:cyan]\ \/ / / /\/
-  [f:white:b]YSSP  SSS    S*S    YSSP  S*S    SSS    YSSP~YSSY    S*S    SSS[reset][f:cyan]\ \ \/ / /
-               [f:white:b]SP           SP                         SP       [reset][f:cyan]\ \/\ \/ /
-               [f:white:b]Y            Y                          Y         [reset][f:cyan]\/ /\/ /
-                                                                 [reset][f:cyan]/ /\/ /\
-<%                                                                %> [reset][f:cyan]\ \ \/ /
-                                                                  [reset][f:cyan]\ \  /
-                                                                   [reset][f:cyan]\/\/
-
+                                                                  [reset][f:cyan]/\/\
+                 [f:white:b]Copyright (c) 2014 Brandon Buck                 [reset][f:cyan]/  \ \
+                                                                [reset][f:cyan]/ /\ \ \
+                                                                [reset][f:cyan]\/ /\/ /
+[f:white:b]S.       .S_SSSs      sSSs   .S_sSSs      sSSs_sSSs     .S_sSSs [reset][f:cyan]/ /\/ /\
+[f:white:b]SS.     .SS~SSSSS    d%%SP  .SS~YS%%b    d%%SP~YS%%b   .SS~YS%%b [reset][f:cyan]/\ \/\ \
+[f:white:b]S%S     S%S   SSSS  d%S'    S%S   `S%b  d%S'     `S%b  S%S   `S%b [reset][f:cyan]/\ \ \ \
+[f:white:b]S%S     S%S    S%S  S%S     S%S    S%S  S%S       S%S  S%S [reset][f:cyan]/\/[f:white:b]S%S[reset][f:cyan]/ /\ \ \ \/\
+[f:white:b]S&S     S%S SSSS%S  S&S     S%S    d*S  S&S       S&S  S%S[reset][f:cyan]/  \[f:white:b]S&S [reset][f:cyan]/  \ \ \ \ \
+[f:white:b]S&S     S&S  SSS%S  S&S_Ss  S&S   .S*S  S&S       S&S  S&S [reset][f:cyan]/\ [f:white:b]S&S[reset][f:cyan]/    \ \/\ \ \
+[f:white:b]S&S     S&S    S&S  S&S~SP  S&S_sdSSS   S&S       S&S  S&S[reset][f:cyan]/ /\[f:white:b]S&S      [reset][f:cyan]\/ /\/ /
+[f:white:b]S&S     S&S    S&S  S&S     S&S~YSY%b   S&S       S&S  S&S [reset][f:cyan]/\/[f:white:b]S&S      [reset][f:cyan]/ /\/ /\
+[f:white:b]S*b     S*S    S&S  S*b     S*S   `S%b  S*b       d*S  S*S [reset][f:cyan]\ \[f:white:b]S*S[reset][f:cyan]\    / /\ \/ /
+[f:white:b]S*S.    S*S    S*S  S*S.    S*S    S%S  S*S.     .S*S  S*S[reset][f:cyan]\ \ [f:white:b]S*S [reset][f:cyan]\  / / /\  /
+ [f:white:b]SSSbs  S*S    S*S   SSSbs  S*S    S&S   SSSbs_sdSSS   S*S [reset][f:cyan]\/\[f:white:b]S*S[reset][f:cyan]\ \/ / / /\/
+  [f:white:b]YSSP  SSS    S*S    YSSP  S*S    SSS    YSSP~YSSY    S*S    SSS [reset][f:cyan]\ \/ / /
+               [f:white:b]SP           SP                         SP      [reset][f:cyan]\ \/\ \/ /
+               [f:white:b]Y            Y                          Y        [reset][f:cyan]\/ /\/ /
+                                                                [reset][f:cyan]/ /\/ /\
+<%                                                               %> [reset][f:cyan]\ \ \/ /
+                                                                 [reset][f:cyan]\ \  /
+                                                                  [reset][f:cyan]\/\/
