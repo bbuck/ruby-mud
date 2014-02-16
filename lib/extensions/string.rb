@@ -40,13 +40,13 @@ class String
         count = count + 1
         str += self[i]
       end
-      if count == 80
+      if count >= size
         last_space = str.rindex(" ")
         last_space ||= 0
         new_str = str[(last_space + 1)..-1]
         buffer << str[0...last_space] + "\n"
         str = new_str
-        count = 0
+        count = str.length
       end
       i = i + 1
     end

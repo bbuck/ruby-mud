@@ -2,7 +2,7 @@ class Yell
   MAX_YELL_DIST = 5
 
   def initialize(message, room, rooms_visited = [], yell_dist = 0)
-    if yell_dist < MAX_YELL_DIST
+    if yell_dist <= MAX_YELL_DIST
       if !rooms_visited.include?(room.id)
         room.transmit(message)
         rooms_visited << room.id

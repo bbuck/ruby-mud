@@ -112,7 +112,7 @@ class Room < ActiveRecord::Base
     players_in_room_ids.each do |pid|
       if Player.connections[pid]
         Player.connections[pid].each do |conn|
-          conn.send_text(message)
+          conn.send_text(message, prompt: false)
         end
       end
     end
@@ -153,7 +153,7 @@ class Room < ActiveRecord::Base
     @engine ||= begin
       Room.engines[id] ||= begin
         engine = ES::SharedEngine.new
-        engine.execute(self.script || "")
+        engine.evaluate(self.script || "")
         engine
       end
     end
@@ -166,7 +166,7 @@ class Room < ActiveRecord::Base
     players_in_room.where("id <> ?", viewing_player.id).online.each do |player|
       players << "#{player.display_name} is standing here."
     end
-    players.join("\n")
+    players.join("\n") + "\n"
   end
 
   def exit_string

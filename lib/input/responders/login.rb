@@ -51,7 +51,7 @@ Try to choose a name that is unique for your character and unique to the world.
             conn.input_state = :standard
             conn.send_text("\nYou have successfully joined the world of Laeron.", prompt: false)
             conn.send_text(player.room.display_text(player), newline: false)
-            Laeron.config.logger.info("Player #{player.username} has been created and connected.", prompt: false)
+            Laeron.config.logger.info("Player #{player.username} has been created and connected.")
           else
             Laeron.config.logger.error("Failed to create a player")
             conn.internal_state = nil

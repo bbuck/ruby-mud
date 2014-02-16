@@ -43,6 +43,7 @@ Enter Options >>
   [reset][f:green]up -> [f:white:b]##{room.up ? room.up : no_room}
   [reset][f:green]down -> [f:white:b]##{room.down ? room.down : no_room}
 
+  [reset][f:green]reset [direction] - [f:white:b]Reset the link at this exit.
   [reset][f:green]go back - [f:white:b]Return to the main editor
 
   [reset][f:green]Example: north #10 (links the north exit to 10)
@@ -74,6 +75,7 @@ Enter Option >>
     if true
       conn.input_state = :room_builder
       conn.internal_state = {room: room}
+      conn.player.update_attributes(room: room)
       RoomBuilderHelpers.room_builder_menu(conn, room)
     else
       InputManager.unknown_input(conn)
@@ -118,15 +120,29 @@ InputManager.respond_to :room_builder do
     RoomBuilderHelpers.room_builder_menu(conn, conn.internal_state[:room])
   end
 
+  parse_input_with(/reset (.+)/) do |conn, dir|
+    if conn.internal_state[:edit_exits]
+      dir = dir.downcase.to_sym
+      if Room::EXITS.include?(dir)
+        conn.internal_state[:room].update_attribute(dir, nil)
+        conn.send_text("[f:green]Removed the link for the #{dir} exit!")
+      else
+        conn.send_text("[f:yellow:b]#{dir.to_s.capitalize} is not a valid exit!")
+      end
+    else
+      RoomBuilderHelpers.room_builder_menu(conn, conn.internal_state[:room])
+    end
+  end
+
   parse_input_with(/(northwest|northeast|southwest|southeast|north|south|east|west|up|down) #?(\d+)/) do |conn, dir, room_id|
     if conn.internal_state[:edit_exits]
       begin
         o_room = Room.find(room_id)
         conn.internal_state[:room].update_attribute(dir.to_sym, room_id)
+        conn.send_text("[f:green]Linked #{dir} to room ##{room_id}!", prompt: false)
       rescue ActiveRecord::RecordNotFound => e
         conn.send_text("[f:yellow:b]There is not room with the id ##{room_id}!", prompt: false)
       end
-      RoomBuilderHelpers.edit_exit_menu(conn, conn.internal_state[:room])
     else
       RoomBuilderHelpers.room_builder_menu(conn, conn.internal_state[:room])
     end

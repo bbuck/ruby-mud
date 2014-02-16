@@ -105,7 +105,6 @@ InputManager.respond_to :standard do
     # TODO: Check Authorization
     begin
       room = Room.find(room_id)
-      conn.player.update_attributes(room: room)
       RoomBuilderHelpers.edit_room(conn, room)
     rescue ActiveRecord::RecordNotFound => e
       conn.send_text("[f:yellow:b]There is no room with the id ##{room_id}")

@@ -30,21 +30,21 @@ InputManager.respond_to :standard do
   parse_input_with /general (.+)/ do |conn, message|
     message = message.purge_colors
     Player.connection_list.each do |player_conn|
-      player_conn.send_text("([f:cyan]GENERAL[reset]) #{conn.player.username} - [f:white:b]#{message}")
+      player_conn.send_text("([f:cyan]GENERAL[reset]) #{conn.player.username} - [f:white:b]#{message}", prompt: false)
     end
   end
 
   parse_input_with /trade (.+)/ do |conn, message|
     message = message.purge_colors
     Player.connection_list.each do |player_conn|
-      player_conn.send_text("([f:blue]TRADE[reset]) #{conn.player.username} - [f:white:b]#{message}")
+      player_conn.send_text("([f:blue]TRADE[reset]) #{conn.player.username} - [f:white:b]#{message}", prompt: false)
     end
   end
 
   parse_input_with /newb (.+)/ do |conn, message|
     message = message.purge_colors
     Player.connection_list.each do |player_conn|
-      player_conn.send_text("([f:green]NEWBIE[reset]) #{conn.player.username} - [f:white:b]#{message}")
+      player_conn.send_text("([f:green]NEWBIE[reset]) #{conn.player.username} - [f:white:b]#{message}", prompt: false)
     end
   end
 
@@ -55,21 +55,21 @@ InputManager.respond_to :standard do
       other_player = other_player.first
       if other_player.online?
         Player.connections[other_player.id].each do |other_conn|
-          other_conn.send_text("[f:magenta]#{conn.player.username} tells you \"#{message}\"")
+          other_conn.send_text("[f:magenta]#{conn.player.username} tells you \"#{message}\"", prompt: false)
         end
-        conn.send_text("[f:magenta]You tell #{other_player.username} \"#{message}\"")
+        conn.send_text("[f:magenta]You tell #{other_player.username} \"#{message}\"", prompt: false)
       else
-        conn.send_text("[f:magenta]#{other_player.username} cannot be found.")
+        conn.send_text("[f:magenta]#{other_player.username} cannot be found.", prompt: false)
       end
     else
-      conn.send_text("[f:magenta]#{player_name.capitalize} is not recognized, are your sure they exist?")
+      conn.send_text("[f:magenta]#{player_name.capitalize} is not recognized, are your sure they exist?", prompt: false)
     end
   end
 
   parse_input_with /server (.+)/ do |conn, message|
     message = message.purge_colors
     Player.connection_list.each do |player_conn|
-      player_conn.send_text("[f:yellow:b][SERVER] #{message}")
+      player_conn.send_text("[f:yellow:b][SERVER] #{message}", prompt: false)
     end
   end
 end
