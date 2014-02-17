@@ -161,7 +161,7 @@ Enter Option >>
     send_edit_exit_menu
   end
 
-  parse_input_with(/\A2\z/) do
+  parse_input_with(/\A5\z/) do
     editor = EditorResponder.new(connection)
     editor.open_editor(editing_room, :script, allow_colors: true) do |connection|
       RoomBuilderResponder.new(connection).send_room_builder_menu
