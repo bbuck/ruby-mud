@@ -176,7 +176,7 @@ class Room < ActiveRecord::Base
     str = if has_exits.length == 0
       "NO EXITS."
     else
-      "EXITS: [f:white:b]" + has_exits.join(", ") + "[reset][f:red]."
+      "EXITS: [f:white:b]" + has_exits.join("[reset][f:red], [f:white:b]") + "[reset][f:red]."
     end
     "[reset][f:red]#{str}"
   end

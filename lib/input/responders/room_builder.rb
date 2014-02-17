@@ -23,33 +23,37 @@ class RoomBuilderResponder < InputResponder
 [f:white:b]
 +-----------------------------------------------------------------------------+
 [reset][f:green]
-Enter Options >>
+Enter Option >>
     MENU
     send_no_prompt_or_newline(text)
   end
 
   def send_edit_exit_menu(room = nil)
     room = editing_room if room.nil?
-    no_room = "\bno room"
+    exit_info = Room::EXITS.map do |exit_name|
+      room_method = :"#{exit_name}_room"
+      str = "  [f:green]#{exit_name.to_s.capitalize} -> "
+      str += if editing_room.has_exit?(exit_name)
+        "[f:white:b]#{editing_room.send(room_method).name}[reset]"
+      else
+        "[f:white]no room[reset]"
+      end
+      str
+    end
+    exit_info = exit_info.join("\n")
+    header = TextHelpers.header_with_title("[reset][f:green]Edit Exits")
+    footer = TextHelpers.full_line("=")
     text = <<-MENU
-[f:white:b]
-==== Link Exits ===============================================================
-[reset][f:green]
-  north -> [f:white:b]#{room.north ? room.north.name : no_room}[reset]
-  [f:green]south -> [f:white:b]#{room.south ? room.south.name : no_room}[reset]
-  [f:green]east -> [f:white:b]#{room.east ? room.east.name : no_room}[reset]
-  [f:green]west -> [f:white:b]#{room.west ? room.west.name : no_room}[reset]
-  [f:green]northwest -> [f:white:b]#{room.northwest.name ? room.northwest : no_room}[reset]
-  [f:green]northeast -> [f:white:b]#{room.northeast.name ? room.northeast : no_room}[reset]
-  [f:green]southwest -> [f:white:b]#{room.southwest.name ? room.southwest : no_room}[reset]
-  [f:green]southeast -> [f:white:b]#{room.southeast.name ? room.southeast : no_room}[reset]
-  [f:green]up -> [f:white:b]#{room.up ? room.up.name : no_room}[reset]
-  [f:green]down -> [f:white:b]#{room.down ? room.down.name : no_room}[reset]
+
+#{header}
+#{exit_info}
 
   [f:green]search <query> - [reset]List up to 10 rooms with a name matching the query.
   [f:green]reset <direction> - [reset]Reset the link at this exit.
   [f:green]go back - [reset]Return to the main editor
   [f:green]help - [reset]Show help with linking exits.
+
+[f:white:b]#{footer}[reset][f:green]
 
 Enter Option >>
     MENU
@@ -57,9 +61,11 @@ Enter Option >>
   end
 
   def send_edit_exit_help
+    header = TextHelpers.header_with_title("[reset][f:green]Edit Exits Help")
+    footer = TextHelpers.full_line("=")
     help = <<-HELP
-[f:white:b]
-==== Edit Exits Help ==========================================================
+
+#{header}
 [reset][f:green]
   Point a direction to a specific room by specifying the exit followed by the
     room number.
@@ -76,7 +82,7 @@ Enter Option >>
 [f:white:b]
     search House
 
-===============================================================================
+[f:white:b]#{footer}
     HELP
     send_no_prompt(help)
   end
@@ -117,6 +123,16 @@ Enter Option >>
       end
     end
 
+    parse_input_with(/\Asearch (.+)\z/) do |query|
+      rooms = Room.name_like(query).limit(10)
+      room_str = rooms.map do |room|
+        "##{room.id} - [f:white:b]#{room.name}[reset]"
+      end
+
+      send_no_prompt("Search results for \"#{query}\":")
+      send_no_prompt(room_str.join("\n"))
+    end
+
     parse_input_with(/\A(northwest|northeast|southwest|southeast|north|south|east|west|up|down) #?(\d+)\z/) do |direction, room_id|
       begin
         o_room = Room.find(room_id)
@@ -131,7 +147,7 @@ Enter Option >>
       send_edit_exit_help
     end
 
-    parse_input_with(/\A.+\z/) do
+    parse_input_with(/\A.*\z/) do
       send_edit_exit_menu
     end
   end

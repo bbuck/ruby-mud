@@ -214,7 +214,7 @@ Enter option >>
 
   parse_input_with(/\A\.(\d+)\z/) do |line_idx|
     idx = line_idx.to_i - 1
-    if idx < conn.internal_state[:buffer].length
+    if idx < buffer.length
       change_mode(:line_edit)
       internal_state[:index] = idx
       send_no_prompt("[f:green]Current:")

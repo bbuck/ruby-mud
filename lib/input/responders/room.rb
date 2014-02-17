@@ -1,4 +1,6 @@
 class RoomResponder < InputResponder
+  DEFAULT_ROOM_DESCRIPTION = "This room lacks a description."
+
   # --- Templates Helpers ----------------------------------------------------
 
   def send_room_info(room = nil)
@@ -121,7 +123,7 @@ class RoomResponder < InputResponder
     if room_name.length == 0
       send("[f:yellow:b]You must specify a name for the new room!")
     else
-      room = Room.create(name: room_name, description: "This room lacks a description.", creator: conn.player)
+      room = Room.create(name: room_name, description: DEFAULT_ROOM_DESCRIPTION, creator: player)
       RoomBuilderResponder.new(connection).edit_room(room)
     end
   end

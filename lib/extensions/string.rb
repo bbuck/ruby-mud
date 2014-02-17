@@ -41,12 +41,18 @@ class String
         str += self[i]
       end
       if count >= size
-        last_space = str.rindex(" ")
-        last_space ||= 0
-        new_str = str[(last_space + 1)..-1]
-        buffer << str[0...last_space] + "\n"
-        str = new_str
-        count = str.length
+        if self[i + 1] =~ /[a-z.?!, ]/i
+          last_space = str.rindex(" ")
+          last_space ||= 0
+          new_str = str[(last_space + 1)..-1]
+          buffer << str[0...last_space] + "\n"
+          str = new_str
+          count = str.length
+        else
+          buffer << str + "\n"
+          count = 0
+          str = ""
+        end
       end
       i = i + 1
     end
