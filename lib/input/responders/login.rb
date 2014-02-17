@@ -1,113 +1,188 @@
-InputManager.respond_to :login do
-  parse_input_with /new/i do |conn|
-    text = <<-TEXT
+class LoginResponder < InputResponder
+  VALID_USERNAME_RX = /\A[a-z]{2}[a-z'-]{0,17}[a-z]\z/i
+  INVALID_NAME_SEQUENCE_RX = /'-|''|-'/
 
-Learon is a fantasy themed Roleplaying game, therefore there are a few rules that your Character name must conform to.
+  USERNAME_REQUIREMENTS = <<-REQS
 
-[f:green:b]1. We do not accept Modern names such as Brandon, John, Jennifer, or Amber.
-2. Names that are part of other stories such as those out of books, games, or movies are not allowed.
-3. Names of Mythological characters or Gods are not allowed.[reset]
+
+Valid character names in Laeron must fit the following criteria:
+[f:green]
+  1. The name must begin with at least [f:white:b]two[reset][f:green] alphabetic characters ([f:white:b]A through Z[reset][f:green]).
+
+  2. The name can contain any alphabetic character or an apostrophe ([f:white:b]'[reset][f:green]) or a
+     hyphen (-[reset][f:green]).
+
+     a. You can have up to [f:white:b]two[reset][f:green] apostrophes ([f:white:b]'[reset][f:green]) in your name.
+     b. You can have [f:white:b]one[reset][f:green] hyphen ([f:white:b]-[reset][f:green]) in your name.
+     c. Apostrophes and Hyphens [f:red]cannot[f:green] touch one another.
+
+  3. The name must end with an alphabetic character.
+
+  4. The name must be at least [f:white:b]3[reset][f:green] characters and no more than [f:white:b]20[reset][f:green] characters
+     long.
+[reset]
+Please select a new name that fits within these rules:
+  REQS
+
+  PASSWORD_REQUIREMENTS = <<-REQS
+
+
+[f:green]Passwords must be at least 8 characters long and no more than 50 characters
+long.
+
+Passwords can contain any special characters you choose. Choose something
+you could easily remember.
+
+Perhaps choose a passphrase like: [f:white:b]correct horse battery staple [f:red:b](DO NOT USE)
+  REQS
+
+  USERNAME_RULES = <<-RULES
+
+
+Learon is a fantasy themed Roleplaying game, therefore there are a few rules
+that your Character name must conform to.
+[f:green]
+  1. We do not accept Modern names such as Brandon, John, Jennifer, or Amber.
+
+  2. Names that are part of other stories such as those out of books, games, or
+     movies are not allowed.
+
+  3. Names of Mythological characters or Gods are not allowed.[reset]
 
 Try to choose a name that is unique for your character and unique to the world.
+  RULES
 
-[f:white:b]Please enter a name for your character that complies with the rules above:
-    TEXT
-    conn.send_text(text, newline: false, prompt: false)
-    conn.internal_state = :create_name
+  # --- Helpers --------------------------------------------------------------
+
+  def valid_username?(username)
+    if username =~ VALID_USERNAME_RX
+      if username.scan(/'/).count <= 2 && username.scan(/-/).count <= 1
+        username.scan(INVALID_NAME_SEQUENCE_RX).count == 0
+      else
+        false
+      end
+    else
+      false
+    end
   end
 
-  parse_input_with /\A(y|yes|n|no)\Z/i do |conn, input|
-    if conn.internal_state.is_a?(Hash) && conn.internal_state[:confirm_name]
-      if input =~ /y|yes/i
-        conn.internal_state = {new_name: conn.internal_state[:confirm_name]}
-        conn.send_text("[f:white:b]Please enter a password for your character:\n#{ANSI::hidden}", newline: false, prompt: false)
+  def valid_password?(password)
+    password.length >= 8 && password.length <= 50
+  end
+
+  def send_enter_password_text(username)
+    send_no_prompt_or_newline("\nPlease enter a password for \"[f:cyan:b]#{username}[reset]\":\n#{ANSI::hidden}")
+  end
+
+  def send_initial_greeting
+    send_no_prompt("Welcome to the Laeron, please enter your character's name or type \"new\"")
+  end
+
+  def connect_player(new_player)
+    connection.player = new_player
+    player.room.player_appears(player)
+    Player.connect(player, connection)
+    logger.info("Player #{player.username} has connected.")
+    change_input_state(:standard)
+  end
+
+  # --- Responders -----------------------------------------------------------
+
+  responders_for_mode :create_name do
+    parse_input_with(/(.+)/) do |username|
+      username = username.capitalize
+      if valid_username?(username)
+        if Player.with_username(username).count > 0
+          send_no_prompt("\nWe're sorry but a player has already taken the name \"[f:white:b]#{username}[f:yellow:b].\" Please choose another name.")
+        else
+          self.internal_state = {mode: :create_password, username: username}
+          send_enter_password_text(internal_state[:username])
+        end
       else
-        conn.internal_state = nil
-        conn.send_text("Welcome to the Laeron, please enter your character's name or type \"new\"", prompt: false)
+        send_no_prompt_or_newline(USERNAME_REQUIREMENTS)
       end
     end
   end
 
-  parse_input_with /(.+)/i do |conn, input|
-    # --- Creating a name ---
-    if conn.internal_state == :create_name
-      if Player.with_username(input).count > 0 #Player.where("lower(username) = ?", input.downcase).count > 0
-        conn.send_text("\nWe're sorry but a player has already taken the name \"[f:white:b]#{name.capitalize}[f:yellow:b].\" Please choose another name.", prompt: false)
+  responders_for_mode :confirm_name do
+    parse_input_with(/\A(yes|y|no|n)\Z/i) do |input|
+      if input =~ /y/i
+        change_mode(:create_password)
+        send_enter_password_text(internal_state[:username])
       else
-        conn.internal_state = {new_name: input.capitalize}
-        conn.send_text("\nPlease enter a password for \"[f:cyan:b]#{input.capitalize}\":\n#{ANSI::hidden}", newline: false, prompt: false)
+        self.internal_state = nil
+        send_initial_greeting
       end
-    elsif conn.internal_state.is_a?(Hash)
+    end
+  end
 
-      # --- Confirming Password ---
-      if conn.internal_state.has_key?(:confirm_password)
-        if input == conn.internal_state[:confirm_password]
-          # TODO: Fix origin room (should be from DB)
-          player = Player.new(username: conn.internal_state[:new_name], password: input, room_id: 1)
-          if player.save
-            conn.player = player
-            player.room.player_appears(player)
-            Player.connect(player, conn)
-            conn.input_state = :standard
-            conn.send_text("\nYou have successfully joined the world of Laeron.", prompt: false)
-            conn.send_text(player.room.display_text(player), newline: false)
-            Laeron.config.logger.info("Player #{player.username} has been created and connected.")
-          else
-            Laeron.config.logger.error("Failed to create a player")
-            conn.internal_state = nil
-            conn.send_text("[f:red:b]There was an error creating your character, please try again.", prompt: false)
-          end
-        else
-          conn.send_text("\nThe passwords do not match, please give \"[f:white:b]#{conn.internal_state[:new_name]}[f:yellow:b]\" a password:\n#{ANSI::hidden}", newline: false, prompt: false)
-          conn.internal_state.delete(:confirm_password)
-        end
-
-      # --- Reenter your Password ---
-      elsif conn.internal_state.has_key?(:new_name)
-        conn.send_text("Please reenter your password:#{ANSI::hidden}", prompt: false)
-        conn.internal_state[:confirm_password] = input
-      end
-    elsif conn.player.nil?
-
-      # --- Testing Password ---
-      if conn.internal_state.is_a?(Player)
-        if conn.internal_state.password == input
-          conn.player = conn.internal_state
-          conn.player.room.player_appears(conn.player)
-          Player.connect(conn.player, conn)
-          conn.input_state = :standard
-          Laeron.config.logger.info("Player #{conn.player.username} has connected.")
-          conn.send_text("\nYou have successfully connected to Laeron!", prompt: false)
-          conn.send_text(conn.player.room.display_text(conn.player), newline: false)
-        else
-          conn.send_text("\n[f:red:b]The password entered was not correct.", prompt: false)
-          conn.internal_state = nil
-        end
-
-      # --- Unknown Username ---
-      elsif Player.with_username(input).count == 0
-        text = <<-TEXT
-
-I don't recognize "[f:white:b]#{input}[reset]" you must be new.
-
-Learon is a fantasy themed Roleplaying game, therefore there are a few rules that your Character name must conform to.
-
-[f:green:b]1. We do not accept Modern names such as Brandon, John, Jennifer, or Amber.
-2. Names that are part of other stories such as those out of books, games, or movies are not allowed.
-3. Names of Mythological characters or Gods are not allowed.[reset]
-
-Try to choose a name that is unique for your character and unique to the world.
-
-Did you enter the name "[f:white:b]#{input}[reset]" correctly and does this name comply with the rules above [f:green:b](y/n)[reset]?
-        TEXT
-        conn.send_text(text, newline: false, prompt: false)
-        conn.internal_state = {confirm_name: input.capitalize}
-
-      # --- Found user, enter password
+  responders_for_mode :create_password do
+    parse_input_with(/(.+)/) do |password|
+      if valid_password?(password)
+        send_no_prompt("Please reenter your password:#{ANSI::hidden}")
+        change_mode(:confirm_password)
+        internal_state[:password] = password
       else
-        conn.internal_state = Player.with_username(input).first
-        conn.send_text("\nEnter the password for \"[f:white:b]#{input.capitalize}[reset]\"\n#{ANSI::hidden}", newline: false, prompt: false)
+        send_no_prompt("\n[f:red]That password is not valid.")
+        send_no_prompt(PASSWORD_REQUIREMENTS)
       end
+    end
+  end
+
+  responders_for_mode :confirm_password do
+    parse_input_with(/(.+)/) do |password|
+      if password == internal_state[:password]
+        # TODO: Fix origin room (should be from DB)
+        new_player = Player.new(username: internal_state[:username], password: password, room_id: 1)
+        if new_player.save
+          logger.info("#{new_player.username} has been created.")
+          connect_player(new_player)
+          send_no_prompt("\nYou have successfully joined the world of Laeron.")
+          send_room_description
+        else
+          logger.error("Failed to create a player")
+          self.internal_state = nil
+          send_no_prompt("[f:red:b]There was an error creating your character, please try again.")
+          send_initial_greeting
+        end
+      else
+        send_no_prompt("\n[f:red]The passwords do not match!")
+        send_enter_password_text(internal_state[:username])
+        change_mode(:create_password)
+        internal_state.delete(:password)
+      end
+    end
+  end
+
+  responders_for_mode :enter_password do
+    parse_input_with(/(.+)/) do |password|
+      if internal_state[:player].password == password
+        connect_player(internal_state[:player])
+        send_room_description
+      else
+        send_no_prompt("[f:red]That password is incorrect!")
+        connection.quit
+      end
+    end
+  end
+
+  parse_input_with(/\Anew\z/) do
+    send_no_prompt(USERNAME_RULES)
+    send_no_prompt("[f:white:b]Please enter a name for your character that complies with the rules above:")
+    self.internal_state = {mode: :create_name}
+  end
+
+  parse_input_with(/(.+)/) do |username|
+    players = Player.with_username(username)
+    if players.count == 0
+      send_no_prompt(USERNAME_RULES)
+      send_no_prompt("Did you enter the name \"[f:white:b]#{username}[reset]\" correctly and does this name comply with the rules above [f:green:b](y/n)[reset]?")
+      self.internal_state = {mode: :confirm_name, username: username.capitalize}
+    else
+      self.internal_state = {mode: :enter_password, player: players.first}
+      send_no_prompt_or_newline("\nEnter the password for \"[f:white:b]#{username.capitalize}[reset]\"\n#{ANSI::hidden}")
     end
   end
 end
+
+InputManager.add_responder(:login, LoginResponder)

@@ -1,42 +1,41 @@
-module EditorHelpers
-  LINE_EDIT_RX = /\.(\d+)/
-  DELETE_LINE_RX = /d(\d+)/
+class EditorResponder < InputResponder
+  # --- Template Helpers -----------------------------------------------------
 
-  def self.edit_menu(conn)
-    if conn.internal_state[:buffer]
-      conn.internal_state[:buffer]
+  def send_edit_menu
+    if buffer
+      buffer
     else
-      prop = conn.internal_state[:object].send(conn.internal_state[:property])
+      prop = editing_object.send(editing_property)
       prop ||= ""
-      conn.internal_state[:buffer] = prop.lines
+      self.buffer = prop.lines
     end
-    buffer = conn.internal_state[:buffer]
     padding = buffer.length.to_s.length
     display_lines = []
     buffer.each_with_index do |line, idx|
       display_lines << "#{idx.next.to_s.rjust(padding)}) #{line}"
     end
     display_lines = display_lines.join("")
-    header = "==== Edit #{conn.internal_state[:property].to_s.capitalize} "
+    header = "==== Edit #{editing_property.to_s.capitalize} "
     header += ("=" * (79 - header.length))
     text = <<-TEXT
 
 [f:white:b]#{header}[reset]
 
 #{display_lines}
-
-           [reset][f:green][.] Free Edit    | [.#] Edit Line      | [d#] Delete Line
-           [w] Save Changes | [e]  Exit Editor    | [h]  Help
-           [c] Clear Buffer | [.q] Quit Free Edit
+[reset][f:green]
+  | [f:white:b][c] [reset][f:green]Clear Buffer | [f:white:b][.#] [reset][f:green]Edit Line      | [f:white:b][d#] [reset][f:green]Delete Line |
+  | [f:white:b][.] [reset][f:green]Free Edit    | [f:white:b][.q] [reset][f:green]Quit Free Edit |                  |
+  | [f:white:b][w] [reset][f:green]Save Changes | [f:white:b][e]  [reset][f:green]Exit Editor    | [f:white:b][h]  [reset][f:green]Help        |
 
 Enter option >>
     TEXT
-    conn.send_text(text, newline: false, prompt: false)
+    send_no_prompt_or_newline(text)
   end
 
-  def self.editor_help(conn)
+  def send_editor_help
     text = <<-TEXT
-[f:white:b]==== Editor Help =====================================================
+[f:white:b]
+==== Editor Help ==============================================================
 
 [reset][f:green][[f:red].[f:green]]  Free Edit - [f:white]Begin editing at the end of the buffer. Every new line is
                 appended.
@@ -54,136 +53,202 @@ Enter option >>
                    make sure that you save your changes before exiting.
 
 [f:green][[f:red]h[f:green]]  Help - [f:white]Show this help page.
+[f:white:b]
+===============================================================================
 
     TEXT
-    conn.send_text(text, newline: false, prompt: false)
+    send_no_prompt_or_newline(text)
   end
 
-  def self.restore(conn)
-    restore_state = conn.internal_state[:restore_state]
-    conn.input_state = restore_state[:input_state]
-    conn.internal_state = restore_state[:internal_state]
-    restore_state[:restore_cb].call(conn, restore_state[:internal_state])
+  # --- Helpers --------------------------------------------------------------
+
+  def editing_object
+    internal_state[:object]
   end
 
-  def self.open_editor(conn, object, property, opts = {}, &block)
+  def editing_property
+    internal_state[:property]
+  end
+
+  def buffer
+    internal_state[:buffer]
+  end
+
+  def buffer=(new_buffer)
+    internal_state[:buffer] = new_buffer
+  end
+
+  def unsaved_changes
+    internal_state[:unsaved_changes]
+  end
+
+  def unsaved_changes=(value)
+    internal_state[:unsaved_changes] = value
+  end
+
+  def options
+    internal_state[:options]
+  end
+
+  def restore_original_state
+    restore_state = internal_state[:restore_state]
+    change_input_state(restore_state[:input_state])
+    self.internal_state = restore_state[:internal_state]
+    restore_state[:restore_cb].call(connection)
+  end
+
+  def open_editor(object, property, opts = {}, &block)
     opts = default_open_editor_options.merge(opts)
     new_state = {
       object: object,
       property: property,
       options: opts,
-      unsaved: false,
+      unsaved_changes: false,
       restore_state: {
-        input_state: conn.input_state,
-        internal_state: conn.internal_state,
+        input_state: input_state,
+        internal_state: internal_state,
         restore_cb: block
       }
     }
-    conn.input_state = :editor
-    conn.internal_state = new_state
-    edit_menu(conn)
+    change_input_state(:editor)
+    self.internal_state = new_state
+    send_edit_menu
   end
 
-  def self.default_open_editor_options
+  def default_open_editor_options
     {allow_colors: false}
   end
-end
 
-InputManager.respond_to :editor do
-  parse_input_with(/(.*)/) do |conn, input|
-    if conn.internal_state[:mode] == :free_edit
-      if input == ".q"
-        conn.internal_state.delete(:mode)
-        EditorHelpers.edit_menu(conn)
-      else
-        conn.internal_state[:buffer] << input + "\n"
-        conn.internal_state[:unsaved] = true
-        conn.send_text("[f:green]>> ", newline: false, prompt: false)
-      end
-    elsif conn.internal_state[:mode] == :line_edit
-      idx = conn.internal_state[:index]
-      conn.internal_state[:buffer][idx] = input + "\n"
-      conn.internal_state[:unsaved] = true
-      conn.internal_state.delete(:index)
-      conn.internal_state.delete(:mode)
-      EditorHelpers.edit_menu(conn)
-    elsif input.length > 0
-      if [:clear, :delete_line, :exit].include?(conn.internal_state[:mode])
-        if input =~ /\A(?:yes|y)\z/
-          case conn.internal_state[:mode]
-          when :clear
-            conn.internal_state[:buffer] = []
-            conn.internal_state[:unsaved] = true
-            EditorHelpers.edit_menu(conn)
-          when :delete_line
-            idx = conn.internal_state[:index]
-            conn.internal_state[:buffer].delete_at(idx)
-            conn.internal_state[:unsaved] = true
-            EditorHelpers.edit_menu(conn)
-          when :exit
-            EditorHelpers.restore(conn)
-          end
-          conn.internal_state.delete(:mode)
-          conn.internal_state.delete(:index)
-        elsif input =~ /\A(?:no|n)\z/
-          conn.internal_state.delete(:mode)
-          conn.internal_state.delete(:index)
-          EditorHelpers.edit_menu(conn)
-        else
-          case conn.internal_state[:mode]
-          when :clear
-            conn.send_text("[f:green]Are you sure you want to clear the entire buffer [f:green:b](y/n)[reset][f:green]?", prompt: false)
-          when :delete_line
-            idx = conn.internal_state[:index]
-            conn.send_text("[f:green]Are you sure you want to delete line ##{idx.next} from the buffer [f:green:b](y/n)[reset][f:green]?", prompt: false)
-          when :exit
-            conn.send_text("[f:green]Are you sure you wish to exit without saving [f:green:b](y/n)[reset][f:green]?", prompt: false)
-          end
-        end
-      else
-        if input == "e"
-          if conn.internal_state[:unsaved]
-            conn.internal_state[:mode] = :exit
-            conn.send_text("[f:green]Are you sure you wish to exit without saving [f:green:b](y/n)[reset][f:green]?", prompt: false)
-          else
-            EditorHelpers.restore(conn)
-          end
-        elsif input == "h"
-          EditorHelpers.editor_help(conn)
-        elsif input == "."
-          conn.internal_state[:mode] = :free_edit
-          conn.send_text("[f:green]>> ", newline: false, prompt: false)
-        elsif input =~ EditorHelpers::LINE_EDIT_RX
-          idx = $1.to_i - 1
-          if idx < conn.internal_state[:buffer].length
-            conn.internal_state[:mode] = :line_edit
-            conn.internal_state[:index] = idx
-            conn.send_text("[f:green]Current:", prompt: false)
-            conn.send_text(conn.internal_state[:buffer][idx], prompt: false)
-            conn.send_text("\n[f:green]>> ", newline: false, prompt: false)
-          else
-            conn.sned_text("[f:yellow:b]There buffer isnt that big!", prompt: false)
-            EditorHelpers.edit_menu(conn)
-          end
-        elsif input =~ EditorHelpers::DELETE_LINE_RX
-          idx = $1.to_i - 1
-          conn.internal_state[:index] = idx
-          conn.internal_state[:mode] = :delete_line
-          conn.send_text("[f:green]Are you sure you want to delete line ##{idx.next} from the buffer [f:green:b](y/n)[reset][f:green]?", prompt: false)
-        elsif input == "c"
-          conn.internal_state[:mode] = :clear
-          conn.send_text("[f:green]Are you sure you want to clear the entire buffer [f:green:b](y/n)[reset][f:green]?", prompt: false)
-        elsif input == "w"
-          conn.internal_state[:unsaved] = false
-          text = conn.internal_state[:buffer].join("")
-          conn.internal_state[:object].update_attribute(conn.internal_state[:property], text)
-          conn.send_text("[f:green]The buffer has been saved!", prompt: false)
-        else
-          EditorHelpers.edit_menu(conn)
-        end
-      end
-    else
-      EditorHelpers.edit_menu(conn)
+  # --- Responders -----------------------------------------------------------
+
+  responders_for_mode :free_edit do
+    parse_input_with(/\A.q\z/) do
+      clear_mode
+      send_edit_menu
+    end
+
+    parse_input_with(/\A(.+)\z/) do |input|
+      buffer << input + "\n"
+      self.unsaved_changes = true
+      send_no_prompt_or_newline("[f:green]>> ")
     end
   end
+
+  responders_for_mode :line_edit do
+    parse_input_with(/\A(.*)\z/) do |input|
+      idx = internal_state[:index]
+      buffer[idx] = input + "\n"
+      self.unsaved_changes = true
+      internal_state.delete(:index)
+      clear_mode
+      send_edit_menu
+    end
+  end
+
+  responders_for_mode :clear do
+    parse_input_with(/\A(yes|y|no|n)\z/i) do |answer|
+      if answer =~ /y/i
+        self.buffer = []
+        self.unsaved_changes = true
+        send_edit_menu
+      end
+      clear_mode
+      send_edit_menu
+    end
+
+    parse_input_with(/\A.*\z/) do
+      send_no_prompt("[f:green]Are you sure you want to clear the entire buffer [f:green:b](y/n)[reset][f:green]?")
+    end
+  end
+
+  responders_for_mode :delete_line do
+    parse_input_with(/\A(yes|y|no|n)\z/i) do |answer|
+      if answer =~ /y/i
+        idx = internal_state[:index]
+        buffer.delete_at(idx)
+        self.unsaved_changes = true
+      end
+      clear_mode
+      internal_state.delete(:index)
+      send_edit_menu
+    end
+
+    parse_input_with(/\A.*\z/) do
+      idx = internal_state[:index]
+      send_no_prompt("[f:green]Are you sure you want to delete line ##{idx.next} from the buffer [f:green:b](y/n)[reset][f:green]?")
+    end
+  end
+
+  responders_for_mode :exit do
+    parse_input_with(/\A(yes|y|no|n)\z/i) do |answer|
+      if answer =~ /y/i
+        restore_original_state
+      else
+        clear_mode
+        send_edit_menu
+      end
+    end
+
+    parse_input_with(/\A.*\z/) do
+      send_no_prompt("[f:green]Are you sure you wish to exit without saving [f:green:b](y/n)[reset][f:green]?")
+    end
+  end
+
+  parse_input_with(/\A\.\z/) do
+    change_mode(:free_edit)
+    send_no_prompt_or_newline("[f:green]>> ")
+  end
+
+  parse_input_with(/\Ae\z/) do
+    if unsaved_changes
+      change_mode(:exit)
+      send_no_prompt("[f:green]Are you sure you wish to exit without saving [f:green:b](y/n)[reset][f:green]?")
+    else
+      restore_original_state
+    end
+  end
+
+  parse_input_with(/\Ah\z/) do
+    send_editor_help
+  end
+
+  parse_input_with(/\A\.(\d+)\z/) do |line_idx|
+    idx = line_idx.to_i - 1
+    if idx < conn.internal_state[:buffer].length
+      change_mode(:line_edit)
+      internal_state[:index] = idx
+      send_no_prompt("[f:green]Current:")
+      send_no_prompt(buffer[idx])
+      send_no_prompt_or_newline("\n[f:green]>> ")
+    else
+      send_no_prompt("[f:yellow:b]There buffer isnt that big!")
+      send_edit_menu
+    end
+  end
+
+  parse_input_with(/\Ad(\d+)\z/) do |line_idx|
+    idx = line_idx.to_i - 1
+    internal_state[:index] = idx
+    change_mode(:delete_line)
+    send_no_prompt("[f:green]Are you sure you want to delete line ##{idx.next} from the buffer [f:green:b](y/n)[reset][f:green]?")
+  end
+
+  parse_input_with(/\Ac\z/) do
+    change_mode(:clear)
+    send_no_prompt("[f:green]Are you sure you want to clear the entire buffer [f:green:b](y/n)[reset][f:green]?")
+  end
+
+  parse_input_with(/\Aw\z/) do
+    self.unsaved_changes = false
+    text = buffer.join("")
+    text.purge_colors unless options[:allow_colors]
+    editing_object.update_attribute(editing_property, text)
+    send_no_prompt("[f:green]The buffer has been saved!")
+  end
+
+  parse_input_with(/\A.*\z/) do
+    send_edit_menu
+  end
 end
+
+InputManager.add_responder(:editor, EditorResponder)

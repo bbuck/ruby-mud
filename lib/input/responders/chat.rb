@@ -1,75 +1,77 @@
-InputManager.respond_to :standard do
-  parse_input_with /say (.+)/ do |conn, message|
+class ChatResponder < InputResponder
+  # --- Responders -----------------------------------------------------------
+
+  parse_input_with(/\Asay (.+)\z/) do |message|
     message = message.purge_colors
-    conn.player.room.transmit("[f:cyan:b]#{conn.player.username} says, \"#{message}\"")
+    current_room.transmit("[f:cyan:b]#{player.username} says, \"#{message}\"")
   end
 
-  parse_input_with /yell (.+)/ do |conn, message|
+  parse_input_with(/\Ayell (.+)\z/) do |message|
     message = message.purge_colors
-    yell = "[f:red:b]#{conn.player.username} yells, \"#{message}\""
-    Yell.new(yell, conn.player.room)
+    yell = "[f:red:b]#{player.username} yells, \"#{message}\""
+    Yell.new(yell, current_room)
   end
 
-  parse_input_with [/xme (.+)/,
-                    /xpost (.+)/] do |conn, message|
+  parse_input_with(/\Axme (.+)\z/, /\Axpost (.+)\z/) do |message|
     message = message.purge_colors
-    conn.player.room.transmit("[f:green]#{message}")
+    current_room.transmit("[f:green]#{message}")
   end
 
-  parse_input_with [/me (.+)/,
-                    /post (.+)/] do |conn, message|
+  parse_input_with(/\Ame (.+)\z/, /\Apost (.+)\z/) do |message|
     message = message.purge_colors
-    conn.player.room.transmit("[f:green]#{conn.player.username} #{message}")
+    current_room.transmit("[f:green]#{player.username} #{message}")
   end
 
-  parse_input_with /ooc (.+)/ do |conn, message|
+  parse_input_with(/\Aooc (.+)\z/) do |message|
     message = message.purge_colors
-    conn.player.room.transmit("[OOC] #{conn.player.username}: #{message}")
+    current_room.transmit("[OOC] #{player.username}: #{message}")
   end
 
-  parse_input_with /general (.+)/ do |conn, message|
+  parse_input_with(/\Ageneral (.+)\z/) do |message|
     message = message.purge_colors
     Player.connection_list.each do |player_conn|
-      player_conn.send_text("([f:cyan]GENERAL[reset]) #{conn.player.username} - [f:white:b]#{message}", prompt: false)
+      player_conn.send_text("([f:cyan]GENERAL[reset]) #{player.username} - [f:white:b]#{message}", prompt: false)
     end
   end
 
-  parse_input_with /trade (.+)/ do |conn, message|
+  parse_input_with(/\Atrade (.+)\z/) do |message|
     message = message.purge_colors
     Player.connection_list.each do |player_conn|
-      player_conn.send_text("([f:blue]TRADE[reset]) #{conn.player.username} - [f:white:b]#{message}", prompt: false)
+      player_conn.send_text("([f:blue]TRADE[reset]) #{player.username} - [f:white:b]#{message}", prompt: false)
     end
   end
 
-  parse_input_with /newb (.+)/ do |conn, message|
+  parse_input_with(/\Anewb (.+)\z/) do |message|
     message = message.purge_colors
     Player.connection_list.each do |player_conn|
-      player_conn.send_text("([f:green]NEWBIE[reset]) #{conn.player.username} - [f:white:b]#{message}", prompt: false)
+      player_conn.send_text("([f:green]NEWBIE[reset]) #{player.username} - [f:white:b]#{message}", prompt: false)
     end
   end
 
-  parse_input_with /tell (.+?) (.+)/ do |conn, player_name, message|
+  parse_input_with(/\Atell (.+?) (.+)\z/) do |player_name, message|
     message = message.purge_colors
     other_player = Player.with_username(player_name)
     if other_player.count > 0
       other_player = other_player.first
       if other_player.online?
         Player.connections[other_player.id].each do |other_conn|
-          other_conn.send_text("[f:magenta]#{conn.player.username} tells you \"#{message}\"", prompt: false)
+          other_conn.send_text("[f:magenta]#{player.username} tells you \"#{message}\"", prompt: false)
         end
-        conn.send_text("[f:magenta]You tell #{other_player.username} \"#{message}\"", prompt: false)
+        send_no_prompt("[f:magenta]You tell #{other_player.username} \"#{message}\"")
       else
-        conn.send_text("[f:magenta]#{other_player.username} cannot be found.", prompt: false)
+        send_no_prompt("[f:magenta]#{other_player.username} cannot be found.")
       end
     else
-      conn.send_text("[f:magenta]#{player_name.capitalize} is not recognized, are your sure they exist?", prompt: false)
+      send_no_prompt("[f:magenta]#{player_name.capitalize} is not recognized, are your sure they exist?")
     end
   end
 
-  parse_input_with /server (.+)/ do |conn, message|
+  parse_input_with(/\Aserver (.+)\z/) do |message|
     message = message.purge_colors
     Player.connection_list.each do |player_conn|
       player_conn.send_text("[f:yellow:b][SERVER] #{message}", prompt: false)
     end
   end
 end
+
+InputManager.add_responder(:standard, ChatResponder)

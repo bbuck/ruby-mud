@@ -1,8 +1,11 @@
-module RoomBuilderHelpers
-  def self.room_builder_menu(conn, room)
-    text = <<-MENU
-[f:white:b]
+class RoomBuilderResponder < InputResponder
+  # --- Template Helpers -----------------------------------------------------
 
+  def send_room_builder_menu(room = nil)
+    room = editing_room if room.nil?
+    text = <<-MENU
+
+[f:white:b]
 +-----------------------------------------------------------------------------+
 |   [reset][f:green]Room Builder (v 1.0 by Brandon Buck)[f:white:b]                                      |
 +-----------------------------------------------------------------------------+
@@ -22,141 +25,157 @@ module RoomBuilderHelpers
 [reset][f:green]
 Enter Options >>
     MENU
-
-    conn.send_text(text, newline: false, prompt: false)
+    send_no_prompt_or_newline(text)
   end
 
-  def self.edit_exit_menu(conn, room)
+  def send_edit_exit_menu(room = nil)
+    room = editing_room if room.nil?
     no_room = "\bno room"
     text = <<-MENU
-
-[f:white:b]==== Link Exits ===============================================================
+[f:white:b]
+==== Link Exits ===============================================================
 [reset][f:green]
-  north -> [f:white:b]##{room.north ? room.north : no_room}
-  [reset][f:green]south -> [f:white:b]##{room.south ? room.south : no_room}
-  [reset][f:green]east -> [f:white:b]##{room.east ? room.east : no_room}
-  [reset][f:green]west -> [f:white:b]##{room.west ? room.west : no_room}
-  [reset][f:green]northwest -> [f:white:b]##{room.northwest ? room.northwest : no_room}
-  [reset][f:green]northeast -> [f:white:b]##{room.northeast ? room.northeast : no_room}
-  [reset][f:green]southwest -> [f:white:b]##{room.southwest ? room.southwest : no_room}
-  [reset][f:green]southeast -> [f:white:b]##{room.southeast ? room.southeast : no_room}
-  [reset][f:green]up -> [f:white:b]##{room.up ? room.up : no_room}
-  [reset][f:green]down -> [f:white:b]##{room.down ? room.down : no_room}
+  north -> [f:white:b]#{room.north ? room.north.name : no_room}[reset]
+  [f:green]south -> [f:white:b]#{room.south ? room.south.name : no_room}[reset]
+  [f:green]east -> [f:white:b]#{room.east ? room.east.name : no_room}[reset]
+  [f:green]west -> [f:white:b]#{room.west ? room.west.name : no_room}[reset]
+  [f:green]northwest -> [f:white:b]#{room.northwest.name ? room.northwest : no_room}[reset]
+  [f:green]northeast -> [f:white:b]#{room.northeast.name ? room.northeast : no_room}[reset]
+  [f:green]southwest -> [f:white:b]#{room.southwest.name ? room.southwest : no_room}[reset]
+  [f:green]southeast -> [f:white:b]#{room.southeast.name ? room.southeast : no_room}[reset]
+  [f:green]up -> [f:white:b]#{room.up ? room.up.name : no_room}[reset]
+  [f:green]down -> [f:white:b]#{room.down ? room.down.name : no_room}[reset]
 
-  [reset][f:green]reset [direction] - [f:white:b]Reset the link at this exit.
-  [reset][f:green]go back - [f:white:b]Return to the main editor
-
-  [reset][f:green]Example: north #10 (links the north exit to 10)
+  [f:green]search <query> - [reset]List up to 10 rooms with a name matching the query.
+  [f:green]reset <direction> - [reset]Reset the link at this exit.
+  [f:green]go back - [reset]Return to the main editor
+  [f:green]help - [reset]Show help with linking exits.
 
 Enter Option >>
     MENU
-    conn.send_text(text, newline: false, prompt: false)
+    send_no_prompt_or_newline(text)
   end
 
-  def self.room_quick_info(conn, room)
-    # TODO: Check Authorization
-    exit_str = room.exit_array.map { |e| e.to_s.capitalize }.join(", ")
-    text = <<-INFO
-\n\n[f:white:b]==== Quick Room Info ==========================================================
-  [reset][f:green]Created At: [f:white:b]#{room.created_at.localtime.strftime(TimeFormats::LONG_WITH_TIME)}
-  [reset][f:green]Created By: [f:white:b]#{room.creator.username}
+  def send_edit_exit_help
+    help = <<-HELP
+[f:white:b]
+==== Edit Exits Help ==========================================================
+[reset][f:green]
+  Point a direction to a specific room by specifying the exit followed by the
+    room number.
+[f:white:b]
+    north 10
+    south #33
+[reset][f:green]
+  Clear the room that an exit points to (remove an exit)
+[f:white:b]
+    reset north
+    reset down
+[reset][f:green]
+  Search for Room IDs by room name (displays up to 10 matches).
+[f:white:b]
+    search House
 
-  [reset][f:green]Room ID:    [f:white:b]##{room.id}
-  [reset][f:green]Title:      [f:white:b]#{room.name}
-  [reset][f:green]Exits:      [f:white:b]#{exit_str}
-  [reset][f:green]Players:    [f:white:b]#{room.players_in_room.online.count}
-[f:white:b]===============================================================================[reset]
-    INFO
-    conn.send_text(text)
+===============================================================================
+    HELP
+    send_no_prompt(help)
   end
 
-  def self.edit_room(conn, room)
+  # --- Helpers --------------------------------------------------------------
+
+  def editing_room
+    internal_state[:room]
+  end
+
+  def edit_room(room)
     # TODO: Check Permissions
     if true
-      conn.input_state = :room_builder
-      conn.internal_state = {room: room}
-      conn.player.update_attributes(room: room)
-      RoomBuilderHelpers.room_builder_menu(conn, room)
+      change_input_state(:room_builder)
+      self.internal_state = {room: room}
+      player.update_attribute(:room, room)
+      send_room_builder_menu
     else
       InputManager.unknown_input(conn)
     end
   end
-end
 
-InputManager.respond_to :room_builder do
+  # --- Responders -----------------------------------------------------------
 
-  # --- Catch All ------------------------------------------------------------
-
-  parse_input_with(/\A1\z/) do |conn|
-    conn.internal_state[:enter_name] = true
-    conn.send_text("[f:green]Enter a new title for this room:", prompt: false)
-  end
-
-  parse_input_with(/\A2\z/) do |conn|
-    EditorHelpers.open_editor(conn, conn.internal_state[:room], :description, allow_colors: true) do |conn|
-      RoomBuilderHelpers.room_builder_menu(conn, conn.internal_state[:room])
+  responders_for_mode :edit_exits do
+    parse_input_with(/\Ago back\z/) do
+      clear_mode
+      send_room_builder_menu
     end
-  end
 
-  parse_input_with(/\A3\z/) do |conn|
-    conn.internal_state[:edit_exits] = true
-    RoomBuilderHelpers.edit_exit_menu(conn, conn.internal_state[:room])
-  end
-
-  parse_input_with(/\A5\z/) do |conn|
-    EditorHelpers.open_editor(conn, conn.internal_state[:room], :script, allow_colors: true) do |conn|
-      RoomBuilderHelpers.room_builder_menu(conn, conn.internal_state[:room])
-      conn.internal_state[:room]
-    end
-  end
-
-  parse_input_with(/\A7\z/) do |conn|
-    conn.input_state = :standard
-    conn.send_text(conn.player.room.display_text(conn.player), newline: false)
-  end
-
-  parse_input_with(/go back/) do |conn|
-    conn.internal_state.delete(:edit_exits)
-    RoomBuilderHelpers.room_builder_menu(conn, conn.internal_state[:room])
-  end
-
-  parse_input_with(/reset (.+)/) do |conn, dir|
-    if conn.internal_state[:edit_exits]
-      dir = dir.downcase.to_sym
-      if Room::EXITS.include?(dir)
-        conn.internal_state[:room].update_attribute(dir, nil)
-        conn.send_text("[f:green]Removed the link for the #{dir} exit!")
+    parse_input_with(/\Areset (.+)\z/) do |direction|
+      direction = direction.downcase.to_sym
+      if Room::EXITS.include?(direction)
+        editing_room.update_attribute(direction, nil)
+        send_no_prompt("[f:green]Removed the link for the #{direction} exit!")
       else
-        conn.send_text("[f:yellow:b]#{dir.to_s.capitalize} is not a valid exit!")
+        send_no_prompt("[f:yellow:b]#{direction.to_s.capitalize} is not a valid exit!")
       end
-    else
-      RoomBuilderHelpers.room_builder_menu(conn, conn.internal_state[:room])
     end
-  end
 
-  parse_input_with(/(northwest|northeast|southwest|southeast|north|south|east|west|up|down) #?(\d+)/) do |conn, dir, room_id|
-    if conn.internal_state[:edit_exits]
+    parse_input_with(/\A(northwest|northeast|southwest|southeast|north|south|east|west|up|down) #?(\d+)\z/) do |direction, room_id|
       begin
         o_room = Room.find(room_id)
-        conn.internal_state[:room].update_attribute(dir.to_sym, room_id)
-        conn.send_text("[f:green]Linked #{dir} to room ##{room_id}!", prompt: false)
+        editing_room.update_attribute(direction.to_sym, room_id)
+        send_no_prompt("[f:green]Linked #{direction} to room ##{room_id}!")
       rescue ActiveRecord::RecordNotFound => e
-        conn.send_text("[f:yellow:b]There is not room with the id ##{room_id}!", prompt: false)
+        send_no_prompt("[f:yellow:b]There is not room with the id ##{room_id}!")
       end
-    else
-      RoomBuilderHelpers.room_builder_menu(conn, conn.internal_state[:room])
+    end
+
+    parse_input_with(/\Ahelp\z/) do
+      send_edit_exit_help
+    end
+
+    parse_input_with(/\A.+\z/) do
+      send_edit_exit_menu
     end
   end
 
-  parse_input_with(/(.*)/) do |conn, input|
-    if conn.internal_state[:enter_name]
-      conn.internal_state.delete(:enter_name)
-      conn.internal_state[:room].update_attribute(:name, input.strip)
-      RoomBuilderHelpers.room_builder_menu(conn, conn.internal_state[:room])
-    elsif conn.internal_state[:edit_exits]
-      RoomBuilderHelpers.edit_exit_menu(conn, conn.internal_state[:room])
-    else
-      RoomBuilderHelpers.room_builder_menu(conn, conn.internal_state[:room])
+  responders_for_mode :enter_room_name do
+    parse_input_with(/\A(.+)\z/) do |new_name|
+      clear_mode
+      editing_room.update_attribute(:name, new_name.strip)
+      send_room_builder_menu
     end
   end
+
+  parse_input_with(/\A1\z/) do
+    change_mode(:enter_room_name)
+    send_no_prompt("[f:green]Enter a new title for this room:")
+  end
+
+  parse_input_with(/\A2\z/) do
+    editor = EditorResponder.new(connection)
+    editor.open_editor(editing_room, :description, allow_colors: true) do |connection|
+      RoomBuilderResponder.new(connection).send_room_builder_menu
+    end
+  end
+
+  parse_input_with(/\A3\z/) do
+    change_mode(:edit_exits)
+    send_edit_exit_menu
+  end
+
+  parse_input_with(/\A2\z/) do
+    editor = EditorResponder.new(connection)
+    editor.open_editor(editing_room, :script, allow_colors: true) do |connection|
+      RoomBuilderResponder.new(connection).send_room_builder_menu
+    end
+  end
+
+  parse_input_with(/\A7\z/) do
+    change_input_state(:standard)
+    send_room_description
+  end
+
+  parse_input_with(/\A.+\z/) do
+    send_room_builder_menu
+  end
 end
+
+InputManager.add_responder(:room_builder, RoomBuilderResponder)

@@ -54,6 +54,8 @@ class Room < ActiveRecord::Base
   has_many :players_in_room, class_name: "Player"
   belongs_to :creator, class_name: "Player"
 
+  scope :name_like, ->(name) { where("name ILIKE ?", "%#{name}%") }
+
   class << self
     def engines
       @@engines ||= {}
@@ -72,7 +74,6 @@ class Room < ActiveRecord::Base
     player.connection.send_text(display_text(player), newline: false)
     script_engine["@room"] = self
     script_engine.call(:player_entered, player, dir.to_s)
-    player.update_attributes(room: self)
   end
 
   def player_leaves(player, dir)
@@ -122,8 +123,8 @@ class Room < ActiveRecord::Base
     display = <<-ROOM
 \n[f:white:b]#{name}[reset]
 -------------------------------------------------------------------------------
-[f:green]#{description}
-
+[f:green]#{description}[reset]
+-------------------------------------------------------------------------------
 #{exit_string}
     ROOM
 
@@ -173,15 +174,9 @@ class Room < ActiveRecord::Base
     has_exits = exit_array
 
     str = if has_exits.length == 0
-      "NO EXITS"
-    elsif has_exits.length == 1
-      "EXIT TO THE [f:white:b]#{has_exits[0]}[reset][f:red]."
-    elsif has_exits.length == 2
-      "EXIT TO THE [f:white:b]#{has_exits[0]} [reset][f:red]OR[f:white:b] #{has_exits[1]}[reset][f:red]."
+      "NO EXITS."
     else
-      last = has_exits.pop
-      str = has_exits.join("[reset][f:red],[f:white:b] ")
-      "EXITS TO THE [f:white:b]#{str} [reset][f:red]AND[f:white:b] #{last}[reset][f:red]."
+      "EXITS: [f:white:b]" + has_exits.join(", ") + "[reset][f:red]."
     end
     "[reset][f:red]#{str}"
   end

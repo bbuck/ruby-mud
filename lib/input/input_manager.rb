@@ -1,6 +1,5 @@
-# ### InputManager
-#
-#
+require "input/input_responder"
+
 class InputManager
   UNKNOWN_INPUT_RESPONSES = [
     "I'm sorry, did you type something?",
@@ -36,51 +35,18 @@ class InputManager
   ]
 
   class << self
-    def responders
-      @@responders ||= {}
+    def add_responder(for_state, responder_cls)
+      (responders[for_state] ||= []) << responder_cls
     end
-
-    # ---- Begin DSL ----
-    def current_responder_state(state = nil)
-      if state.nil?
-        @current_state
-      else
-        @current_state = (state == false ? nil : state)
-      end
-    end
-
-    def respond_to_state_with(state, regex, &block)
-      return unless block_given?
-      if regex.is_a?(Array)
-        regex.each do |rx|
-          (responders[state] ||= []) << [rx, block]
-        end
-      else
-        (responders[state] ||= []) << [regex, block]
-      end
-    end
-
-    def respond_to(state, &block)
-      current_responder_state(state)
-      class_eval(&block)
-      current_responder_state(false)
-    end
-
-    def parse_input_with(regex, &block)
-      return unless current_responder_state
-      respond_to_state_with(current_responder_state, regex, &block)
-    end
-    # ---- End DSL ----
 
     def process(input, connection)
       input.gsub!(/\r\n/, "")
       state = connection.input_state
       if responders.has_key?(state)
-        responders[state].each do |(regex, block)|
-          match_data = input.match(regex)
-          if match_data
-            input_args = match_data[1..match_data.length]
-            return block.call(connection, *input_args)
+        responders[state].each do |responder_cls|
+          responder = responder_cls.new(connection)
+          if responder.respond_to(input)
+            return
           end
         end
       end
@@ -88,7 +54,13 @@ class InputManager
     end
 
     def unknown_input(connection)
-      connection.send_text("[f:yellow:b]#{UNKNOWN_INPUT_RESPONSES.sample}")
+      connection.send_text("[f:yellow:b]#{UNKNOWN_INPUT_RESPONSES.sample}", prompt: false)
+    end
+
+    private
+
+    def responders
+      @responders ||= {}
     end
   end
 end

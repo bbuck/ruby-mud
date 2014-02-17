@@ -9,6 +9,8 @@ class Player < ActiveRecord::Base
   scope :online, -> { where(id: connections.keys) }
 
   class << self
+    # --- Connection Helpers -------------------------------------------------
+
     def connection_list
       list = []
       connections.each do |id, conns|

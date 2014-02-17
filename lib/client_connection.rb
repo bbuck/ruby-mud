@@ -48,9 +48,8 @@ class ClientConnection < EM::Connection
       send_data(text.colorize)
     end
     if opts[:prompt]
-      prompt = opts[:newline] ? "\n" : ""
-      prompt += "[f:green]PROMPT >>"
-      send_data("#{prompt}\n".colorize)
+      prompt = "[f:green]PROMPT >>"
+      send_data("\n#{prompt}\n\n".colorize)
     end
   end
 
