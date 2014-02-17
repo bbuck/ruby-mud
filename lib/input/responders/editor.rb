@@ -25,7 +25,7 @@ class EditorResponder < InputResponder
 [reset][f:green]
   | [f:white:b][c] [reset][f:green]Clear Buffer | [f:white:b][.#] [reset][f:green]Edit Line      | [f:white:b][d#] [reset][f:green]Delete Line |
   | [f:white:b][.] [reset][f:green]Free Edit    | [f:white:b][.q] [reset][f:green]Quit Free Edit |                  |
-  | [f:white:b][w] [reset][f:green]Save Changes | [f:white:b][e]  [reset][f:green]Exit Editor    | [f:white:b][h]  [reset][f:green]Help        |
+  | [f:white:b][w] [reset][f:green]Save Changes | [f:white:b][q]  [reset][f:green]Quit Editor    | [f:white:b][h]  [reset][f:green]Help        |
 
 Enter option >>
     TEXT
@@ -199,7 +199,7 @@ Enter option >>
     send_no_prompt_or_newline("[f:green]>> ")
   end
 
-  parse_input_with(/\Ae\z/) do
+  parse_input_with(/\Aq\z/) do
     if unsaved_changes
       change_mode(:exit)
       send_no_prompt("[f:green]Are you sure you wish to exit without saving [f:green:b](y/n)[reset][f:green]?")
