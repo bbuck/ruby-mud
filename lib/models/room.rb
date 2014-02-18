@@ -147,6 +147,7 @@ class Room < ActiveRecord::Base
   # --- Script Engines -------------------------------------------------------
 
   def reload_engine
+    script_engine.reset
     script_engine.evaluate(self.script || "")
   end
 

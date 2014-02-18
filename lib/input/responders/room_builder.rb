@@ -50,7 +50,7 @@ Enter Option >>
 
   [f:green]search <query> - [reset]List up to 10 rooms with a name matching the query.
   [f:green]reset <direction> - [reset]Reset the link at this exit.
-  [f:green]go back - [reset]Return to the main editor
+  [f:green]back - [reset]Return to the main editor
   [f:green]help - [reset]Show help with linking exits.
 
 [f:white:b]#{footer}[reset][f:green]
@@ -108,7 +108,7 @@ Enter Option >>
   # --- Responders -----------------------------------------------------------
 
   responders_for_mode :edit_exits do
-    parse_input_with(/\Ago back\z/) do
+    parse_input_with(/\Aback\z/) do
       clear_mode
       send_room_builder_menu
     end

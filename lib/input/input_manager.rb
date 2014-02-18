@@ -40,7 +40,7 @@ class InputManager
     end
 
     def process(input, connection)
-      input.gsub!(/\r\n/, "")
+      input = input.gsub(/\r\n/, "").strip
       state = connection.input_state
       if responders.has_key?(state)
         responders[state].each do |responder_cls|
