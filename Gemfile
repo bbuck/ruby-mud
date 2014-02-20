@@ -8,6 +8,7 @@ gem "eventmachine"
 
 gem "pg"
 gem "activerecord"
+gem "enumerize"
 
 gem "activesupport"
 

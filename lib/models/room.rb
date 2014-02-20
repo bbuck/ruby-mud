@@ -1,55 +1,15 @@
 class Room < ActiveRecord::Base
-  EXITS = [:north, :south, :east, :west, :northwest, :northeast, :southwest,
-           :southeast, :up, :down]
-
-  EXITS_INVERSE = {
-    north: :south,
-    south: :north,
-    east: :west,
-    west: :east,
-    northwest: :southeast,
-    northeast: :southwest,
-    southeast: :northwest,
-    southwest: :northeast,
-    up: :down,
-    down: :up
-  }
-
-  EXITS_PROPER = {
-    north: "the north",
-    south: "the south",
-    east: "the east",
-    west: "the west",
-    northwest: "the northwest",
-    northeast: "the northeast",
-    southwest: "the southwest",
-    southeast: "the southeast",
-    up: "above",
-    down: "below"
-  }
-
-  EXITS_EXPANDED = {
-    n: :north,
-    s: :south,
-    e: :east,
-    w: :west,
-    nw: :northwest,
-    ne: :northeast,
-    sw: :southwest,
-    se: :southeast,
-    u: :up,
-    d: :down
-  }
-
-  EXITS.each do |exit_name|
-    define_method "#{exit_name}_room" do
-      if send(exit_name)
-        Room.find(send(exit_name))
+  ExitHelpers.each_exit do |exit_name|
+    define_method exit_name do
+      if exits.has_key?(exit_name)
+        Room.find(exits[exit_name][:destination])
       else
         nil
       end
     end
   end
+
+  serialize :exits, Hash
 
   has_many :players_in_room, class_name: "Player"
   belongs_to :creator, class_name: "Player"
@@ -58,7 +18,7 @@ class Room < ActiveRecord::Base
 
   class << self
     def engines
-      @@engines ||= {}
+      @engines ||= {}
     end
   end
 
@@ -69,24 +29,26 @@ class Room < ActiveRecord::Base
   end
 
   def player_enters(player, dir)
-    from_dir = EXITS_PROPER[EXITS_INVERSE[dir]]
-    transmit("[f:green]#{player.display_name} enters from #{from_dir}.")
+    from_dir = ExitHelpers.proper(ExitHelpers.inverse(dir))
+    transmit("[f:green]#{player.display_name} [f:green]enters from #{from_dir}.")
     player.connection.send_text(display_text(player), newline: false)
     script_engine["@room"] = self
-    script_engine.call(:player_entered, player, dir.to_s)
+    script_engine.call(:player_entered, player, dir)
   end
 
   def player_leaves(player, dir)
-    from_dir = EXITS_PROPER[dir]
+    from_dir = ExitHelpers.proper(dir)
+    text = "[f:green]#{player.display_name} [f:green]"
     if from_dir == "above"
-      transmit("[f:green]#{player.display_name} leaves up.")
+      text += "leaves up."
     elsif from_dir == "below"
-      transmit("[f:green]#{player.display_name} leaves #{from_dir}.")
+      text += "leaves #{from_dir}."
     else
-      transmit("[f:green]#{player.display_name} leaves to #{from_dir}.")
+      text += "leaves to #{from_dir}."
     end
+    transmit(text)
     script_engine["@room"] = self
-    script_engine.call(:player_leaves, player, EXITS_INVERSE[dir.to_sym].to_s)
+    script_engine.call(:player_leaves, player, ExitHelpers.inverse(dir.to_sym))
   end
 
   # --- Helpers --------------------------------------------------------------
@@ -101,16 +63,190 @@ class Room < ActiveRecord::Base
     reload_engine if prop == :script
   end
 
-  def has_exit?(dir)
-    if EXITS.include?(dir.to_s.downcase.to_sym)
-      send("#{dir}_room") != nil
-    else
-      false
+  def remove_exit(dir)
+    if has_exit?(dir)
+      exits.delete(dir)
+      save
     end
   end
 
-  def transmit(message)
-    players_in_room_ids.each do |pid|
+  def add_exit(dir, destination, options = {})
+    if ExitHelpers::EXITS.include?(dir)
+      new_exit = exits[dir] = {
+        destination: (destination.kind_of?(Room) ? destination.id : destination)
+      }
+      if options[:door]
+        new_exit[:door] = {
+          open: false,
+          timer: options[:door],
+          close_at: nil
+        }
+      end
+      if options[:lock]
+        unless new_exit.has_key?(:door)
+          new_exit[:door] = {
+            open: false,
+            timer: :never,
+            close_at: nil
+          }
+        end
+        new_exit[:lock] = {
+          unlocked: false,
+          timer: options[:lock],
+          lock_at: nil,
+          consume_key: false
+          # TODO: Add Key ID when items are implemented
+        }
+      end
+      save
+    end
+  end
+
+  def open_exit(dir, open_opposite = true)
+    if has_exit?(dir)
+      door, lock = exits[dir][:door], exits[dir][:lock]
+      return :no_door unless door.present?
+      return :locked if lock.present? && !lock[:unlocked]
+      return :open if door[:open]
+      door[:open] = true
+      unless door[:close_at] == :never
+        door[:close_at] = Time.now + door[:timer].interval_value
+      end
+      save
+    else
+      return :no_exit
+    end
+    send(dir).open_exit(ExitHelpers.inverse(dir), false) if open_opposite
+    :success
+  end
+
+  def add_door_to(direction, timer)
+    exits[direction.to_sym][:door] = {
+      open: false,
+      timer: timer,
+      close_at: nil
+    }
+    save
+  end
+
+  def add_lock_to(direction, timer)
+    direction = direction.to_sym
+    add_door_to(direction, :never) unless exits[direction][:door].present?
+    exits[direction][:lock] = {
+      unlocked: false,
+      timer: timer,
+      lock_at: nil
+    }
+    save
+  end
+
+  def remove_lock_from(direction)
+    exits[direction.to_sym].delete(:lock)
+    save
+  end
+
+  def remove_door_from(direction)
+    direction = direction.to_sym
+    exits[direction].delete(:door)
+    exits[direction].delete(:lock)
+    save
+  end
+
+  def close_exit(dir, close_opposite = true)
+    if has_exit?(dir)
+      door = exits[dir][:door]
+      return :no_door unless door.present?
+      return :closed if !door[:open]
+      door[:open] = false
+      door[:close_at] = nil
+      save
+    else
+      return :no_exit
+    end
+    send(dir).close_exit(ExitHelpers.inverse(dir), false)
+    :success
+  end
+
+  def unlock_exit(dir, player, unlock_opposite = true)
+    if has_exit?(dir)
+      door, lock = exits[dir][:door], exits[dir][:lock]
+      return :no_door unless door.present?
+      return :no_lock unless lock.present?
+      return :open if door[:open]
+      return :unlocked if lock[:unlocked]
+      lock[:unlocked] = true
+      unless lock[:lock_at] == :never
+        lock[:lock_at] = Time.now + lock[:timer].interval_value
+      end
+      save
+    else
+      :no_exit
+    end
+    send(dir).unlock_exit(ExitHelpers.inverse(dir), nil, false) if unlock_opposite
+    :success
+  end
+
+  def lock_exit(dir, lock_opposite = true)
+    if has_exit?(dir)
+      door, lock = exits[dir][:door], exits[dir][:lock]
+      return :no_door unless door.present?
+      return :no_lock unless lock.present?
+      return :open if door[:open]
+      return :locked if !lock[:unlocked]
+      lock[:unlocked] = false
+      lock[:lock_at] = nil
+      save
+    else
+      :no_exit
+    end
+    send(dir).lock_exit(TextHelpers.inverse(dir), false) if lock_opposite
+    :success
+  end
+
+  def exit_status(dir)
+    if has_exit?(dir)
+      door, lock = exits[dir][:door], exits[dir][:lock]
+      if door.present?
+        return :open if door[:open]
+        if lock.present?
+          lock[:unlocked] ? :unlocked : :locked
+        else
+          :closed
+        end
+      else
+        :open
+      end
+    else
+      :no_exit
+    end
+  end
+
+  def exit_open?(dir)
+    exit_status(dir) == :open
+  end
+
+  def has_exit?(dir)
+    exits.has_key?(dir)
+  end
+
+  def transmit(message, options = {})
+    players_in_room.online.ids.each do |pid|
+      exclude_player = false
+      if options.has_key?(:exclude)
+        exclude_opts = if options[:exclude].kind_of?(Array)
+          options[:exclude]
+        else
+          [options[:exclude]]
+        end
+        exclude_player = exclude_opts.reduce(exclude_player) do |exc, player|
+          if player.kind_of?(Player)
+            exc || pid == player.id
+          else
+            exc || pid == player
+          end
+        end
+      end
+      next if exclude_player
       if Player.connections[pid]
         Player.connections[pid].each do |conn|
           conn.send_text(message, prompt: false)
@@ -120,26 +256,21 @@ class Room < ActiveRecord::Base
   end
 
   def display_text(player)
+    reload
+    divider = TextHelpers.full_line("-")
     display = <<-ROOM
 \n[f:white:b]#{name}[reset]
--------------------------------------------------------------------------------
+#{divider}
 [f:green]#{description}[reset]
--------------------------------------------------------------------------------
+#{divider}
 #{exit_string}
     ROOM
-
-    display += "\n#{player_string(player)}" if players_in_room.where("id <> ?", player.id).count > 0
+    display += "\n#{player_string(player)}" if players_in_room.where("id <> ?", player.id).online.count > 0
     display
   end
 
   def exit_array
-    exit_array = []
-    EXITS.each do |exit_name|
-      if send(exit_name)
-        exit_array << exit_name
-      end
-    end
-    exit_array
+    exits.keys
   end
 
   private
@@ -152,6 +283,7 @@ class Room < ActiveRecord::Base
   end
 
   def script_engine
+    reload
     @engine ||= begin
       Room.engines[id] ||= begin
         engine = ES::SharedEngine.new
@@ -166,7 +298,7 @@ class Room < ActiveRecord::Base
   def player_string(viewing_player)
     players = []
     players_in_room.where("id <> ?", viewing_player.id).online.each do |player|
-      players << "#{player.display_name} is standing here."
+      players << "[f:green]#{player.display_name} [f:green]is standing here."
     end
     players.join("\n") + "\n"
   end
@@ -177,7 +309,14 @@ class Room < ActiveRecord::Base
     str = if has_exits.length == 0
       "NO EXITS."
     else
-      "EXITS: [f:white:b]" + has_exits.join("[reset][f:red], [f:white:b]") + "[reset][f:red]."
+      has_exits = has_exits.map do |exit_name|
+        if exit_open?(exit_name)
+          "[f:white:b]#{exit_name}[f:red]"
+        else
+          "[reset]#{exit_name}[f:red]"
+        end
+      end
+      "EXITS: " + has_exits.join(", ") + "[f:red]."
     end
     "[reset][f:red]#{str}"
   end

@@ -1,5 +1,36 @@
 class EditorResponder < InputResponder
+  IDENTIFIER_RX = "[a-z_][A-Za-z_0-9]*[a-zA-Z0-9_?!]\b?"
+  CLASS_IDENTIFIER_RX = "@@[a-zA-Z_][a-Za-z_0-9]*\b"
+  INSTANCE_IDENTIFIER_RX = "@[a-zA-Z_][a-Za-z_0-9]*\b"
+  HIGHLIGHT = {
+    instance_method: {
+      rx: /(#{IDENTIFIER_RX}?)\s+do/,
+      replacement: "[f:magenta]$1 [f:blue:b]do"
+    },
+    keywords: {
+      rx: /(end|if|else|elsif)/,
+      replacement: "[f:blue:b]$1"
+    }
+  }
+
   # --- Template Helpers -----------------------------------------------------
+
+  def highlight(text)
+    if options[:syntax]
+      HIGHLIGHT.each do |_, details|
+        if text =~ details[:rx]
+          text.gsub!(details[:rx]) do
+            new_text = details[:replacement]
+            Regexp.last_match[1..-1].each_with_index do |match, idx|
+              new_text.gsub!("$#{idx + 1}", match)
+            end
+            new_text
+          end
+        end
+      end
+    end
+    text
+  end
 
   def send_edit_menu
     if buffer
@@ -12,20 +43,20 @@ class EditorResponder < InputResponder
     padding = buffer.length.to_s.length
     display_lines = []
     buffer.each_with_index do |line, idx|
-      display_lines << "#{idx.next.to_s.rjust(padding)}) #{line}"
+      display_lines << "[reset]#{idx.next.to_s.rjust(padding)}) #{highlight(line)}"
     end
     display_lines = display_lines.join("")
     header = "==== Edit #{editing_property.to_s.capitalize} "
     header += ("=" * (79 - header.length))
     text = <<-TEXT
 
-[f:white:b]#{header}[reset]
-
+[f:white:b]#{header}
+[reset]
 #{display_lines}
 [reset][f:green]
-  | [f:white:b][c] [reset][f:green]Clear Buffer | [f:white:b][.#] [reset][f:green]Edit Line      | [f:white:b][d#] [reset][f:green]Delete Line |
-  | [f:white:b][.] [reset][f:green]Free Edit    | [f:white:b][.q] [reset][f:green]Quit Free Edit |                  |
-  | [f:white:b][w] [reset][f:green]Save Changes | [f:white:b][q]  [reset][f:green]Quit Editor    | [f:white:b][h]  [reset][f:green]Help        |
+  | [f:white:b][c] [f:green]Clear Buffer | [f:white:b][.#] [f:green]Edit Line      | [f:white:b][d#] [f:green]Delete Line |
+  | [f:white:b][.] [f:green]Free Edit    | [f:white:b][.q] [f:green]Quit Free Edit |                  |
+  | [f:white:b][w] [f:green]Save Changes | [f:white:b][q]  [f:green]Quit Editor    | [f:white:b][h]  [f:green]Help        |
 
 Enter option >>
     TEXT
@@ -37,7 +68,7 @@ Enter option >>
 [f:white:b]
 ==== Editor Help ==============================================================
 
-[reset][f:green][[f:red].[f:green]]  Free Edit - [f:white]Begin editing at the end of the buffer. Every new line is
+[f:green][[f:red].[f:green]]  Free Edit - [f:white]Begin editing at the end of the buffer. Every new line is
                 appended.
 
 [f:green][[f:red].q[f:green]] Quit Free Edit - [f:white]Exit Free Edit mode. Does nothing unless in Free Edit.
@@ -116,7 +147,10 @@ Enter option >>
   end
 
   def default_open_editor_options
-    {allow_colors: false}
+    {
+      allow_colors: false,
+      syntax: false
+    }
   end
 
   # --- Responders -----------------------------------------------------------

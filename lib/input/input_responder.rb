@@ -103,6 +103,10 @@ class InputResponder
     InputManager.unknown_input(connection)
   end
 
+  def send_not_authorized
+    connection.send_text("[f:red]You are not authorized to access this command!", prompt: false)
+  end
+
   attr_reader :connection
 end
 

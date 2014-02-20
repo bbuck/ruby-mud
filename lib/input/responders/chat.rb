@@ -1,9 +1,18 @@
 class ChatResponder < InputResponder
+  # --- Helpers --------------------------------------------------------------
+
+  def send_to_everyone(message)
+    Player.each_connection do |other_connection|
+      other_connection.send_text(message, prompt: false)
+    end
+  end
+
   # --- Responders -----------------------------------------------------------
 
   parse_input_with(/\Asay (.+)\z/) do |message|
     message = message.purge_colors
-    current_room.transmit("[f:cyan:b]#{player.username} says, \"#{message}\"")
+    send_no_prompt("[f:cyan:b]You say, \"#{message}\"")
+    current_room.transmit("[f:cyan:b]#{player.username} says, \"#{message}\"", exclude: player)
   end
 
   parse_input_with(/\Ayell (.+)\z/) do |message|
@@ -29,23 +38,17 @@ class ChatResponder < InputResponder
 
   parse_input_with(/\Ageneral (.+)\z/) do |message|
     message = message.purge_colors
-    Player.connection_list.each do |player_conn|
-      player_conn.send_text("([f:cyan]GENERAL[reset]) #{player.username} - [f:white:b]#{message}", prompt: false)
-    end
+    send_to_everyone("[f:white:b]([f:cyan]GENERAL[f:white:b]) [f:green]#{player.display_name} [f:white:b]- [reset]#{message}")
   end
 
   parse_input_with(/\Atrade (.+)\z/) do |message|
     message = message.purge_colors
-    Player.connection_list.each do |player_conn|
-      player_conn.send_text("([f:blue]TRADE[reset]) #{player.username} - [f:white:b]#{message}", prompt: false)
-    end
+    send_to_everyone("[f:white:b]([f:blue]TRADE[f:white:b]) [f:green]#{player.display_name} [f:white:b]- [reset]#{message}")
   end
 
   parse_input_with(/\Anewb (.+)\z/) do |message|
     message = message.purge_colors
-    Player.connection_list.each do |player_conn|
-      player_conn.send_text("([f:green]NEWBIE[reset]) #{player.username} - [f:white:b]#{message}", prompt: false)
-    end
+    send_to_everyone("[f:white:b]([f:green]NEWBIE[f:white:b]) [f:green]#{player.display_name} [f:white:b]- [reset]#{message}")
   end
 
   parse_input_with(/\Atell (.+?) (.+)\z/) do |player_name, message|
@@ -55,7 +58,7 @@ class ChatResponder < InputResponder
       other_player = other_player.first
       if other_player.online?
         Player.connections[other_player.id].each do |other_conn|
-          other_conn.send_text("[f:magenta]#{player.username} tells you \"#{message}\"", prompt: false)
+          other_conn.send_text("[f:magenta]#{player.username} tells you \"#{message}\"")
         end
         send_no_prompt("[f:magenta]You tell #{other_player.username} \"#{message}\"")
       else
@@ -67,9 +70,10 @@ class ChatResponder < InputResponder
   end
 
   parse_input_with(/\Aserver (.+)\z/) do |message|
-    message = message.purge_colors
-    Player.connection_list.each do |player_conn|
-      player_conn.send_text("[f:yellow:b][SERVER] #{message}", prompt: false)
+    if player.can_administrate?
+      send_to_everyone("[f:yellow:b][SERVER] #{message}")
+    else
+      send_not_authorized
     end
   end
 end

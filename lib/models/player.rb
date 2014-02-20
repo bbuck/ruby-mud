@@ -1,6 +1,12 @@
 class Player < ActiveRecord::Base
   include BCrypt
 
+  BUILD_PERMISSION = 1
+  CONTROL_PERMISSION = 2
+  SPAWN_PERMISSION = 4
+  ADMIN_PERMISSION = 8
+  SUPER_ADMIN_PERMISSION = 16
+
   has_many :tracking, class_name: "PlayerTracking"
   belongs_to :room
   has_many :created_rooms, class_name: "Room", foreign_key: :creator_id
@@ -11,20 +17,19 @@ class Player < ActiveRecord::Base
   class << self
     # --- Connection Helpers -------------------------------------------------
 
-    def connection_list
-      list = []
+    def each_connection(&block)
       connections.each do |id, conns|
-        list.concat(conns)
+        conns.each(&block)
       end
-      list
     end
 
     def connections
-      @@connections ||= {}
+      @connections ||= {}
     end
 
     def disconnect(player, connection)
       connections[player.id].delete(connection)
+      connections.delete(player.id) if connections[player.id].count == 0
       Laeron.config.logger.info("Player #{player.username} disconnected.")
     end
 
@@ -35,7 +40,7 @@ class Player < ActiveRecord::Base
         player = Player.find(player)
         player.id
       end
-      ip_addr = Socket.unpack_sockaddr_in(connection.get_peername)[1]
+      ip_addr = connection.ip_addr
       tracking = player.tracking.find_or_create_by(ip_address: ip_addr)
       tracking.update_attributes(connection_count: (tracking.connection_count || 0) + 1)
       if connections[player_id] && connections[player_id].length > 0
@@ -56,10 +61,25 @@ class Player < ActiveRecord::Base
   # --- Helpers ---------------------------------------------------------------
 
   def display_name
-    username
+    name_color = if admin?
+      "[f:cyan:b]"
+    elsif celestial?
+      "[f:white:b]"
+    elsif game_master?
+      "[f:yellow:b]"
+    elsif builder?
+      "[f:green:b]"
+    else
+      ""
+    end
+    name_color + username
   end
 
   # --- Connection Helpers ----------------------------------------------------
+
+  def disconnect
+    Player.disconnect(self, connection)
+  end
 
   def online?
     Player.connections[id] && Player.connections[id].length > 0
@@ -92,5 +112,72 @@ class Player < ActiveRecord::Base
       new_hash[:password_hash] = @password
     end
     super(new_hash)
+  end
+
+  # --- Permission Helpers ---------------------------------------------------
+
+  def can_build?
+    reload
+    permissions & BUILD_PERMISSION == BUILD_PERMISSION
+  end
+
+  def can_control?
+    reload
+    permissions & CONTROL_PERMISSION == CONTROL_PERMISSION
+  end
+
+  def can_spawn?
+    reload
+    permissions & SPAWN_PERMISSION == SPAWN_PERMISSION
+  end
+
+  def can_administrate?
+    reload
+    permissions & ADMIN_PERMISSION == ADMIN_PERMISSION
+  end
+
+  def can_promote_to_admin?
+    reload
+    permissions & SUPER_ADMIN_PERMISSION == SUPER_ADMIN_PERMISSION
+  end
+
+  def make_builder
+    update_attribute(:permissions, BUILD_PERMISSION & SPAWN_PERMISSION)
+  end
+
+  def builder?
+    permissions == (BUILD_PERMISSION | SPAWN_PERMISSION)
+  end
+
+  def make_events_team
+    update_attribute(:permissions, CONTROL_PERMISSION | SPAWN_PERMISSION)
+  end
+
+  def events_team?
+    permissions = (CONTROL_PERMISSION | SPAWN_PERMISSION)
+  end
+
+  def make_game_master
+    update_attribute(:permissions, ADMIN_PERMISSION | CONTROL_PERMISSION | SPAWN_PERMISSION)
+  end
+
+  def game_master?
+    permissions == (ADMIN_PERMISSION | CONTROL_PERMISSION | SPAWN_PERMISSION)
+  end
+
+  def make_celestial
+    update_attribute(:permission, BUILD_PERMISSION | ADMIN_PERMISSION | CONTROL_PERMISSION | SPAWN_PERMISSION)
+  end
+
+  def celestial?
+    permissions == (BUILD_PERMISSION | ADMIN_PERMISSION | CONTROL_PERMISSION | SPAWN_PERMISSION)
+  end
+
+  def make_admin
+    update_attribute(:permissions, BUILD_PERMISSION | ADMIN_PERMISSION | CONTROL_PERMISSION | SPAWN_PERMISSION | SUPER_ADMIN_PERMISSION)
+  end
+
+  def admin?
+    permissions == (BUILD_PERMISSION | ADMIN_PERMISSION | CONTROL_PERMISSION | SPAWN_PERMISSION | SUPER_ADMIN_PERMISSION)
   end
 end

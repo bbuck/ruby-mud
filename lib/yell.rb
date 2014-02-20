@@ -7,9 +7,11 @@ class Yell
         room.transmit(message)
         rooms_visited << room.id
       end
-      Room::EXITS.each do |exit_name|
-        if room.send(exit_name)
-          Yell.new(message, room.send("#{exit_name}_room"), rooms_visited, yell_dist + 1)
+      EM.next_tick do
+        Room::EXITS.each do |exit_name|
+          if room.send(exit_name)
+            Yell.new(message, room.send("#{exit_name}_room"), rooms_visited, yell_dist + 1)
+          end
         end
       end
     end

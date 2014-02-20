@@ -16,7 +16,16 @@ class String
       else
         false
       end
-      ANSI::send(method, bright)
+      color = if ANSI::respond_to?(method)
+        ANSI::send(method, bright)
+      else
+        "[#{Regexp.last_match[0]}]"
+      end
+      if bright
+        color
+      else
+        ANSI::reset + color
+      end
     end
     ret += ANSI::reset if opts[:include_reset]
     ret
@@ -49,12 +58,15 @@ class String
           str = new_str
           count = str.length
         else
+          if self[i + 1] == "\n"
+            i += 1
+          end
           buffer << str + "\n"
           count = 0
           str = ""
         end
       end
-      i = i + 1
+      i += 1
     end
     buffer << str
     if buffer.length == 0
@@ -63,6 +75,28 @@ class String
       buffer.first
     else
       buffer
+    end
+  end
+
+  def interval_value
+    time = self.scan(/(\d+)([yMwdhms])/).inject(0) do |total, (amount, type)|
+      amount = amount.to_i
+      total + case type
+      when "y"
+        amount.years
+      when "M"
+        amount.months
+      when "w"
+        amount.weeks
+      when "d"
+        amount.days
+      when "h"
+        amount.hours
+      when "m"
+        amount.minutes
+      when "s"
+        amount.seconds
+      end
     end
   end
 

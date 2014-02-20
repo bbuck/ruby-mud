@@ -11,16 +11,17 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 1392540675) do
+ActiveRecord::Schema.define(version: 1392839465) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
   create_table "game_settings", force: true do |t|
-    t.string   "content_title", default: ""
-    t.text     "game_title",    default: ""
+    t.string   "content_title",   default: ""
+    t.text     "game_title",      default: ""
     t.datetime "created_at"
     t.datetime "updated_at"
+    t.integer  "initial_room_id", default: 1
   end
 
   create_table "player_trackings", force: true do |t|
@@ -39,25 +40,19 @@ ActiveRecord::Schema.define(version: 1392540675) do
     t.datetime "created_at"
     t.datetime "updated_at"
     t.integer  "room_id"
+    t.integer  "permissions",   default: 0
   end
+
+  add_index "players", ["username"], name: "index_players_on_username", using: :btree
 
   create_table "rooms", force: true do |t|
     t.string   "name"
     t.text     "description"
-    t.integer  "north"
-    t.integer  "south"
-    t.integer  "east"
-    t.integer  "west"
-    t.integer  "northwest"
-    t.integer  "northeast"
-    t.integer  "southwest"
-    t.integer  "southeast"
-    t.integer  "up"
-    t.integer  "down"
     t.datetime "created_at"
     t.datetime "updated_at"
     t.text     "script"
     t.integer  "creator_id"
+    t.text     "exits"
   end
 
 end
