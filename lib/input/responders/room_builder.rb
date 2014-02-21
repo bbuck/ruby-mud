@@ -41,9 +41,17 @@ Enter Option >>
         spaces = " " * str.purge_colors.length
         str += "[f:white:b]#{room.send(exit_name).name}"
         if details.has_key?(:door)
-          str += "\n[f:green]#{spaces}door closes after #{details[:door][:timer]}"
+          str += if details[:door][:timer] == :never
+            "\n[f:green]#{spaces}door does not close automatically"
+          else
+            "\n[f:green]#{spaces}door closes after #{details[:door][:timer]}"
+          end
           if details.has_key?(:lock)
-            str += "\n#{spaces}door locks after #{details[:lock][:timer]}"
+            str += if details[:lock][:timer] == :never
+              "\n[f:green]#{spaces}door does not lock automatically"
+            else
+              "\n#{spaces}door locks after #{details[:lock][:timer]}"
+            end
           end
         end
       else
@@ -79,16 +87,22 @@ Enter Option >>
 
 #{header}
 [f:green]
+  For all commands add "here" to the end to make them only operate on the
+    room you are editing. By default all commands that add exits will add the
+    same to the room you link it to.
+[f:green]
   Point a direction to a specific room by specifying the exit followed by the
     room number.
 [f:white:b]
     north 10
     south #33
+    east 22 here
 [f:green]
   Clear the room that an exit points to (remove an exit)
 [f:white:b]
     reset north
     reset down
+    reset south here
 [f:green]
   Search for Room IDs by room name (displays up to 10 matches).
 [f:white:b]
@@ -99,10 +113,13 @@ Enter Option >>
 [f:white:b]
     close north after 10m
     close south
+    close northeast here
+    close south after 3m here
 [f:green]
   Remove a door and lock from an exit.
 [f:white:b]
     open north
+    open west here
 [f:green]
   Add a lock to an exit that automatically locks after a given interval (leave
     off the interval if you don't want it to automatically lock). Adding a
@@ -110,10 +127,13 @@ Enter Option >>
 [f:white:b]
     lock north after 10m
     lock south
+    lock up here
+    lock down after 3m here
 [f:green]
   Remove a lock from an exit.
 [f:white:b]
     unlock east
+    unlock southeast here
 
 [f:white:b]#{footer}
     HELP
@@ -146,29 +166,29 @@ Enter Option >>
       send_room_builder_menu
     end
 
-    parse_input_with(/\Areset (.+)\z/) do |direction|
+    parse_input_with(/\Areset (.+)( here)?\z/) do |direction, here|
       direction = direction.downcase.to_sym
       if ExitHelpers.valid_exit?(direction)
-        editing_room.remove_exit(direction)
+        editing_room.remove_exit(direction, (here.nil? ? { unlink_other: true } : {}))
         send_no_prompt("[f:green]Removed the link for the #{direction} exit!")
       else
         send_no_prompt("[f:yellow:b]#{direction.to_s.capitalize} is not a valid exit!")
       end
     end
 
-    parse_input_with(/\Asearch (.+)\z/) do |query|
+    parse_input_with(/\Asearch (.+)?\z/) do |query|
       rooms = Room.name_like(query).limit(10)
       room_str = rooms.map do |room|
         "##{room.id} - [f:white:b]#{room.name}[reset]"
       end
 
       send_no_prompt("Search results for \"#{query}\":")
-      send_no_prompt(room_str.join("\n"))
+      send_no_prompt(room_str.join("\n") + "\n")
     end
 
-    parse_input_with(/\A(#{EXITS_RX}) #?(\d+)\z/) do |direction, room_id|
+    parse_input_with(/\A(#{EXITS_RX}) #?(\d+)( here)?\z/) do |direction, room_id, here|
       if Room.where(id: room_id).count > 0
-        editing_room.add_exit(direction.to_sym, room_id)
+        editing_room.add_exit(direction.to_sym, room_id, (here.nil? ? { link_opposite: true } : {}))
         send_no_prompt("[f:green]Linked #{direction} to room ##{room_id}!")
       else
         send_no_prompt("[f:yellow:b]There is not room with the id ##{room_id}!")
@@ -179,11 +199,11 @@ Enter Option >>
       send_edit_exit_help
     end
 
-    parse_input_with(/\A(close|lock) (#{EXITS_RX}) after ([\dwMwdhms]+)\z/) do |action, direction, timer|
+    parse_input_with(/\A(close|lock) (#{EXITS_RX}) after ([\dwMwdhms]+)( here)?\z/) do |action, direction, timer, here|
       if action == "close"
         direction = direction.to_sym
         if current_room.has_exit?(direction)
-          current_room.add_door_to(direction, timer)
+          current_room.add_door_to(direction, timer, (here.nil? ? { add_to_link: true } : {}))
           send_no_prompt("[f:green]Added a door to #{direction}")
         else
           send_no_prompt("[f:green]This room doesn't have that exit!")
@@ -191,7 +211,7 @@ Enter Option >>
       else
         direction = direction.to_sym
         if current_room.has_exit?(direction)
-          current_room.add_lock_to(direction, timer)
+          current_room.add_lock_to(direction, timer, (here.nil? ? { add_to_link: true } : {}))
           send_no_prompt("[f:green]Added a lock to #{direction}")
         else
           send_no_prompt("[f:green]This room doesn't have that exit!")
@@ -199,11 +219,11 @@ Enter Option >>
       end
     end
 
-    parse_input_with(/\A(lock|close) (#{EXITS_RX})\z/) do |action, direction|
+    parse_input_with(/\A(lock|close) (#{EXITS_RX})( here)?\z/) do |action, direction, here|
       if action == "close"
         direction = direction.to_sym
         if current_room.has_exit?(direction)
-          current_room.add_door_to(direction, :never)
+          current_room.add_door_to(direction, :never, (here.nil? ? { add_to_link: true } : {}))
           send_no_prompt("[f:green]Added a door to #{direction}")
         else
           send_no_prompt("[f:green]This room doesn't have that exit!")
@@ -211,7 +231,7 @@ Enter Option >>
       else
         direction = direction.to_sym
         if current_room.has_exit?(direction)
-          current_room.add_lock_to(direction, :never)
+          current_room.add_lock_to(direction, :never, (here.nil? ? { add_to_link: true } : {}))
           send_no_prompt("[f:green]Added a lock to #{direction}")
         else
           send_no_prompt("[f:green]This room doesn't have that exit!")
@@ -219,14 +239,14 @@ Enter Option >>
       end
     end
 
-    parse_input_with(/\A(unlock|open) (#{EXITS_RX})\z/) do |action, direction|
+    parse_input_with(/\A(unlock|open) (#{EXITS_RX})( here)?\z/) do |action, direction, here|
       direction = direction.to_sym
       if current_room.has_exit?(direction)
         if action == "unlock"
-          current_room.remove_lock_from(direction)
+          current_room.remove_lock_from(direction, (here.nil? ? { remove_from_link: true } : {}))
           send_no_prompt("[f:green]Removed the door and lock from #{direction}")
         elsif action == "open"
-          current_room.remove_door_from(direction)
+          current_room.remove_door_from(direction, (here.nil? ? { remove_from_link: true } : {}))
           send_no_prompt("[f:green]Removed the door from #{direction}")
         end
       else

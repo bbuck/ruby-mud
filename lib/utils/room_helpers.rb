@@ -7,12 +7,13 @@ module RoomHelpers
         room.exits.each do |name, details|
           next unless details[:door].present?
           # Check lock first, it closes the door as well
-          if details[:lock].present? && details[:lock][:unlocked] && details[:lock][:lock_at] < now
+          if details[:lock].present? && details[:lock][:unlocked] &&
+             details[:lock][:lock_at].present? && details[:lock][:lock_at] < now
             room.close_exit(name)
             room.lock_exit(name)
             room.transmit("[f:green]A door closes and locks.")
           end
-          if details[:door][:open] && details[:door][:close_at] < now
+          if details[:door][:open] && details[:door][:close_at].present? && details[:door][:close_at] < now
             room.close_exit(name)
             room.transmit("[f:green]A door closes.")
           end

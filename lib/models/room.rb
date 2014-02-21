@@ -63,42 +63,35 @@ class Room < ActiveRecord::Base
     reload_engine if prop == :script
   end
 
-  def remove_exit(dir)
+  def remove_exit(dir, options = {})
     if has_exit?(dir)
+      if options[:unlink_other]
+        other_room = send(dir)
+        other_room.remove_exit(ExitHelpers.inverse(dir))
+      end
       exits.delete(dir)
       save
     end
   end
 
   def add_exit(dir, destination, options = {})
-    if ExitHelpers::EXITS.include?(dir)
-      new_exit = exits[dir] = {
-        destination: (destination.kind_of?(Room) ? destination.id : destination)
-      }
+    if ExitHelpers.valid_exit?(dir)
+      new_exit = exits[dir] = { destination: (destination.kind_of?(Room) ? destination.id : destination) }
       if options[:door]
-        new_exit[:door] = {
-          open: false,
-          timer: options[:door],
-          close_at: nil
-        }
+        new_exit[:door] = { open: false, timer: options[:door], close_at: nil }
       end
       if options[:lock]
         unless new_exit.has_key?(:door)
-          new_exit[:door] = {
-            open: false,
-            timer: :never,
-            close_at: nil
-          }
+          new_exit[:door] = { open: false, timer: :never, close_at: nil }
         end
-        new_exit[:lock] = {
-          unlocked: false,
-          timer: options[:lock],
-          lock_at: nil,
-          consume_key: false
-          # TODO: Add Key ID when items are implemented
-        }
+        # TODO: Add Key ID when items are implemented
+        new_exit[:lock] = { unlocked: false, timer: options[:lock], lock_at: nil, consume_key: false }
       end
       save
+      if options[:link_opposite]
+        other_room = (destination.kind_of?(Room) ? destination : Room.find(destination))
+        other_room.add_exit(ExitHelpers.inverse(dir), self.id)
+      end
     end
   end
 
@@ -109,7 +102,7 @@ class Room < ActiveRecord::Base
       return :locked if lock.present? && !lock[:unlocked]
       return :open if door[:open]
       door[:open] = true
-      unless door[:close_at] == :never
+      unless door[:timer] == :never
         door[:close_at] = Time.now + door[:timer].interval_value
       end
       save
@@ -120,36 +113,48 @@ class Room < ActiveRecord::Base
     :success
   end
 
-  def add_door_to(direction, timer)
-    exits[direction.to_sym][:door] = {
-      open: false,
-      timer: timer,
-      close_at: nil
-    }
-    save
+  def add_door_to(direction, timer, options = {})
+    if has_exit?(direction)
+      exits[direction.to_sym][:door] = { open: false, timer: timer, close_at: nil }
+      save
+      if options[:add_to_link]
+        send(direction).add_door_to(ExitHelpers.inverse(direction), timer)
+      end
+    end
   end
 
-  def add_lock_to(direction, timer)
-    direction = direction.to_sym
-    add_door_to(direction, :never) unless exits[direction][:door].present?
-    exits[direction][:lock] = {
-      unlocked: false,
-      timer: timer,
-      lock_at: nil
-    }
-    save
+  def add_lock_to(direction, timer, options = {})
+    if has_exit?(direction)
+      direction = direction.to_sym
+      add_door_to(direction, :never) unless exits[direction][:door].present?
+      exits[direction][:lock] = { unlocked: false, timer: timer, lock_at: nil }
+      save
+      if options[:add_to_link]
+        send(direction).add_lock_to(ExitHelpers.inverse(direction), timer)
+      end
+    end
   end
 
-  def remove_lock_from(direction)
-    exits[direction.to_sym].delete(:lock)
-    save
+  def remove_lock_from(direction, options = {})
+    if has_exit?(direction)
+      exits[direction.to_sym].delete(:lock)
+      save
+      if options[:remove_from_link]
+        send(direction).remove_lock_from(ExitHelpers.inverse(direction))
+      end
+    end
   end
 
-  def remove_door_from(direction)
-    direction = direction.to_sym
-    exits[direction].delete(:door)
-    exits[direction].delete(:lock)
-    save
+  def remove_door_from(direction, options = {})
+    if has_exit?(direction)
+      direction = direction.to_sym
+      exits[direction].delete(:door)
+      exits[direction].delete(:lock)
+      save
+      if options[:remove_from_link]
+        send(direction).remove_door_from(ExitHelpers.inverse(direction))
+      end
+    end
   end
 
   def close_exit(dir, close_opposite = true)
@@ -175,7 +180,7 @@ class Room < ActiveRecord::Base
       return :open if door[:open]
       return :unlocked if lock[:unlocked]
       lock[:unlocked] = true
-      unless lock[:lock_at] == :never
+      unless lock[:timer] == :never
         lock[:lock_at] = Time.now + lock[:timer].interval_value
       end
       save
@@ -199,7 +204,7 @@ class Room < ActiveRecord::Base
     else
       :no_exit
     end
-    send(dir).lock_exit(TextHelpers.inverse(dir), false) if lock_opposite
+    send(dir).lock_exit(ExitHelpers.inverse(dir), false) if lock_opposite
     :success
   end
 

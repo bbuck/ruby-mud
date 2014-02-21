@@ -13,6 +13,6 @@ gem "enumerize"
 gem "activesupport"
 
 gem "bcrypt-ruby", require: "bcrypt"
-gem "eleetscript", "~> 0.0.13a"
+gem "eleetscript", "~> 0.0.14a"
 
 gem "pry"
