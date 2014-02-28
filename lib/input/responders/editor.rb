@@ -1,26 +1,53 @@
 class EditorResponder < InputResponder
-  IDENTIFIER_RX = "[a-z_][A-Za-z_0-9]*[a-zA-Z0-9_?!]\b?"
-  CLASS_IDENTIFIER_RX = "@@[a-zA-Z_][a-Za-z_0-9]*\b"
-  INSTANCE_IDENTIFIER_RX = "@[a-zA-Z_][a-Za-z_0-9]*\b"
+  allow_blank_input
+
+  IDENTIFIER_RX = "[a-z_][A-Za-z_0-9]*[a-zA-Z0-9_?!]"
+  CLASS_IDENTIFIER_RX = "@@[a-zA-Z_][a-Za-z_0-9]*"
+  INSTANCE_IDENTIFIER_RX = "@[a-zA-Z_][a-Za-z_0-9]*"
   HIGHLIGHT = {
+    symbol: {
+      rx: /(?<![fb])(:[\w][\w\d]*?)(?=\b)/i,
+      replacement: "[f:cyan]$1[reset]"
+    },
+    constant: {
+      rx: /(?<=\b)([A-Z][a-zA-Z_]*)/,
+      replacement: "[f:yellow:b]$1[reset]"
+    },
     instance_method: {
-      rx: /(#{IDENTIFIER_RX}?)\s+do/,
-      replacement: "[f:magenta]$1 [f:blue:b]do"
+      rx: /(#{IDENTIFIER_RX})\s+?do/,
+      replacement: "[f:magenta]$1 [f:blue:b]do[reset]"
+    },
+    instance_class_identifier: {
+      rx: /(@@?#{IDENTIFIER_RX})/,
+      replacement: "[f:cyan:b]$1[reset]"
+    },
+    params: {
+      rx: /(\|.+?\|)/,
+      replacement: "[f:magenta:b]$1[reset]"
+    },
+    regex: {
+      rx: /(r".*?"[img]{0,3})/,
+      replacement: "[f:green:b]$1[reset]"
     },
     keywords: {
-      rx: /(end|if|else|elsif)/,
-      replacement: "[f:blue:b]$1"
+      rx: /(?<=\b|\A)(end|if|else|elsif|return|next|continue|while|property)(?=\b|\z)/,
+      replacement: "[f:blue:b]$1[reset]"
+    },
+    reserved_words: {
+      rx: /(?<=\b|\A)(self|true|yes|on|false|no|off|lambda?|lambda|defined?)(?=\b|\z)/,
+      replacement: "[f:red]$1[reset]"
     }
   }
 
   # --- Template Helpers -----------------------------------------------------
 
-  def highlight(text)
+  def highlight(line)
+    new_line = line.dup
     if options[:syntax]
       HIGHLIGHT.each do |_, details|
-        if text =~ details[:rx]
-          text.gsub!(details[:rx]) do
-            new_text = details[:replacement]
+        if line =~ details[:rx]
+          new_line.gsub!(details[:rx]) do
+            new_text = details[:replacement].dup
             Regexp.last_match[1..-1].each_with_index do |match, idx|
               new_text.gsub!("$#{idx + 1}", match)
             end
@@ -29,7 +56,7 @@ class EditorResponder < InputResponder
         end
       end
     end
-    text
+    new_line
   end
 
   def send_edit_menu
@@ -54,9 +81,9 @@ class EditorResponder < InputResponder
 [reset]
 #{display_lines}
 [reset][f:green]
-  | [f:white:b][c] [f:green]Clear Buffer | [f:white:b][.#] [f:green]Edit Line      | [f:white:b][d#] [f:green]Delete Line |
-  | [f:white:b][.] [f:green]Free Edit    | [f:white:b][.q] [f:green]Quit Free Edit |                  |
-  | [f:white:b][w] [f:green]Save Changes | [f:white:b][q]  [f:green]Quit Editor    | [f:white:b][h]  [f:green]Help        |
+  | [f:white:b][c]  [f:green]Clear Buffer     | [f:white:b][.#] [f:green]Edit Line      | [f:white:b][d#] [f:green]Delete Line    |
+  | [f:white:b][i#] [f:green]Insert in Buffer | [f:white:b][.]  [f:green]Free Edit      | [f:white:b][.q] [f:green]Quit Free Edit |
+  | [f:white:b][w]  [f:green]Save Changes     | [f:white:b][q]  [f:green]Quit Editor    | [f:white:b][h]  [f:green]Help           |
 
 Enter option >>
     TEXT
@@ -77,6 +104,8 @@ Enter option >>
                  line with new input.
 
 [f:green][[f:red]d#[f:green]] Delete Line - [f:white]Delete the specified line from the buffer.
+
+[f:green][[f:red]i#[f:green]] Insert Line - [f:white]Add a line before the specified line.
 
 [f:green][[f:red]w[f:green]]  Save Changes - [f:white]Save the changes made to the buffer.
 
@@ -161,7 +190,7 @@ Enter option >>
       send_edit_menu
     end
 
-    parse_input_with(/\A(.+)\z/) do |input|
+    parse_input_with(/\A(.*)\z/) do |input|
       buffer << input + "\n"
       self.unsaved_changes = true
       send_no_prompt_or_newline("[f:green]>> ")
@@ -213,6 +242,15 @@ Enter option >>
     end
   end
 
+  responders_for_mode :insert_line do
+    parse_input_with(/\A(.+)\z/) do |new_line|
+      idx = internal_state.delete(:index)
+      buffer.insert(idx, new_line + "\n")
+      clear_mode
+      send_edit_menu
+    end
+  end
+
   responders_for_mode :exit do
     parse_input_with(/\A(yes|y|no|n)\z/i) do |answer|
       if answer =~ /y/i
@@ -252,7 +290,9 @@ Enter option >>
       change_mode(:line_edit)
       internal_state[:index] = idx
       send_no_prompt("[f:green]Current:")
-      send_no_prompt(buffer[idx])
+      text = buffer[idx]
+      text = text.purge_colors unless options[:allow_colors] || options[:syntax]
+      send_no_prompt(text)
       send_no_prompt_or_newline("\n[f:green]>> ")
     else
       send_no_prompt("[f:yellow:b]There buffer isnt that big!")
@@ -267,6 +307,13 @@ Enter option >>
     send_no_prompt("[f:green]Are you sure you want to delete line ##{idx.next} from the buffer [f:green:b](y/n)[reset][f:green]?")
   end
 
+  parse_input_with(/\Ai(\d+)\z/) do |line_idx|
+    idx = line_idx.to_i - 1
+    internal_state[:index] = idx
+    change_mode(:insert_line)
+    send_no_prompt_or_newline("[f:green]>> ")
+  end
+
   parse_input_with(/\Ac\z/) do
     change_mode(:clear)
     send_no_prompt("[f:green]Are you sure you want to clear the entire buffer [f:green:b](y/n)[reset][f:green]?")
@@ -275,7 +322,7 @@ Enter option >>
   parse_input_with(/\Aw\z/) do
     self.unsaved_changes = false
     text = buffer.join("")
-    text.purge_colors unless options[:allow_colors]
+    text = text.purge_colors unless options[:allow_colors] || options[:syntax]
     editing_object.update_attribute(editing_property, text)
     send_no_prompt("[f:green]The buffer has been saved!")
   end

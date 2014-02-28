@@ -40,17 +40,21 @@ class InputManager
     end
 
     def process(input, connection)
-      input = input.gsub(/\r\n/, "").strip
+      input = input.gsub(/\r\n/, "").rstrip
+      blank_input = input.length == 0
       state = connection.input_state
       if responders.has_key?(state)
         responders[state].each do |responder_cls|
+          if blank_input
+            next unless responder_cls.allow_blank_input?
+          end
           responder = responder_cls.new(connection)
           if responder.respond_to(input)
             return
           end
         end
       end
-      unknown_input(connection)
+      unknown_input(connection) unless blank_input
     end
 
     def unknown_input(connection)

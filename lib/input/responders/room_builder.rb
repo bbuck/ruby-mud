@@ -18,7 +18,7 @@ class RoomBuilderResponder < InputResponder
   [f:white:b][1][f:green] Edit Room Name
   [f:white:b][2][f:green] Edit Room Description
   [f:white:b][3][f:green] Edit Room Exits
-  [f:white:b][4][f:green] Edit Doors (NYI)
+  [f:white:b][4][f:green] Edit NPCs (NYI)
   [f:white:b][5][f:green] Edit Script
   [f:white:b][6][f:green] Delete Room
 
@@ -36,9 +36,9 @@ Enter Option >>
     room.reload
     exit_info = ExitHelpers.map_exits do |exit_name|
       details = room.exits[exit_name]
-      str = "  [f:green]#{exit_name.to_s.capitalize} -> "
+      str = "  [f:green]#{exit_name.to_s.capitalize.ljust(9)} -> "
       if room.has_exit?(exit_name)
-        spaces = " " * str.purge_colors.length
+        spaces = "               "
         str += "[f:white:b]#{room.send(exit_name).name}"
         if details.has_key?(:door)
           str += if details[:door][:timer] == :never

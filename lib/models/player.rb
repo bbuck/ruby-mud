@@ -58,7 +58,7 @@ class Player < ActiveRecord::Base
     end
   end
 
-  # --- Helpers ---------------------------------------------------------------
+  # --- Display Helpers ---------------------------------------------------------------
 
   def display_name
     name_color = if admin?
@@ -73,6 +73,16 @@ class Player < ActiveRecord::Base
       ""
     end
     name_color + username
+  end
+
+  def display_description
+    line = TextHelpers.full_line("-")
+    text = <<-DESC
+
+[f:green]You look at #{display_name}.
+[f:green]#{description}
+    DESC
+    text
   end
 
   # --- Connection Helpers ----------------------------------------------------

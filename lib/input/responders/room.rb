@@ -2,6 +2,13 @@ class RoomResponder < InputResponder
   DEFAULT_ROOM_DESCRIPTION = "This room lacks a description."
   DEFAULT_ROOM_NAME = "This room has not been named."
 
+  DONT_SEE = [
+    "There doesn't appear to be anything like that.",
+    "You don't see anything like that.",
+    "You look around but can't seem to find anything.",
+    "You stare at the ground intently expecting to see something."
+  ]
+
   # --- Templates Helpers ----------------------------------------------------
 
   def send_room_info(room = nil)
@@ -82,7 +89,16 @@ class RoomResponder < InputResponder
     end
   end
 
-  parse_input_with(/\A(?:look|l)\z/) do |conn|
+  parse_input_with(/\A(?:look|l) (.+)\z/) do |object|
+    saw = current_room.player_looks_at(player, object)
+    if saw
+      send_no_prompt_or_newline(saw)
+    else
+      send_no_prompt("[f:green]" + DONT_SEE.sample)
+    end
+  end
+
+  parse_input_with(/\A(?:look|l)\z/) do
     send_room_description
   end
 

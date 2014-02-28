@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 1392839465) do
+ActiveRecord::Schema.define(version: 1393132287) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -41,6 +41,7 @@ ActiveRecord::Schema.define(version: 1392839465) do
     t.datetime "updated_at"
     t.integer  "room_id"
     t.integer  "permissions",   default: 0
+    t.text     "description"
   end
 
   add_index "players", ["username"], name: "index_players_on_username", using: :btree

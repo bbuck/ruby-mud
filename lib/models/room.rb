@@ -32,8 +32,7 @@ class Room < ActiveRecord::Base
     from_dir = ExitHelpers.proper(ExitHelpers.inverse(dir))
     transmit("[f:green]#{player.display_name} [f:green]enters from #{from_dir}.")
     player.connection.send_text(display_text(player), newline: false)
-    script_engine["@room"] = self
-    script_engine.call(:player_entered, player, dir)
+    script_engine.call(:player_entered, player, ExitHelpers.inverse(dir))
   end
 
   def player_leaves(player, dir)
@@ -47,8 +46,15 @@ class Room < ActiveRecord::Base
       text += "leaves to #{from_dir}."
     end
     transmit(text)
-    script_engine["@room"] = self
-    script_engine.call(:player_leaves, player, ExitHelpers.inverse(dir.to_sym))
+    script_engine.call(:player_leaves, player, dir)
+  end
+
+  def player_looks_at(player, object)
+    if players_in_room.with_username(object).count > 0
+      players_in_room.with_username(object).first.display_description
+    else
+      script_engine.call(:player_looks_at, player, object)
+    end
   end
 
   # --- Helpers --------------------------------------------------------------
@@ -296,6 +302,8 @@ class Room < ActiveRecord::Base
         engine
       end
     end
+    @engine["@room"] = self
+    @engine
   end
 
   # --- Text Helpers ---------------------------------------------------------

@@ -1,5 +1,7 @@
 class InputResponder
   class << self
+    @allow_blank_input = false
+
     def responders_for_mode(mode, &block)
       @current_mode = mode
       class_eval(&block)
@@ -16,6 +18,14 @@ class InputResponder
       mode = :__default if mode.nil?
       (@responders ||= {})
       (@responders[mode] ||= [])
+    end
+
+    def allow_blank_input?
+      @allow_blank_input
+    end
+
+    def allow_blank_input
+      @allow_blank_input = true
     end
   end
 

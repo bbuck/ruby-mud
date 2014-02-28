@@ -12,6 +12,7 @@ require "configuration"
 require "laeron"
 Laeron.require_all(Laeron.root.join("lib", "utils", "**", "*"))
 Laeron.require_all(Laeron.root.join("lib", "extensions", "**", "*"))
+Laeron.require_all(Laeron.root.join("lib", "es_locks", "**", "*"))
 require "yell"
 
 # Load models
