@@ -13,10 +13,11 @@ require "laeron"
 Laeron.require_all(Laeron.root.join("lib", "utils", "**", "*"))
 Laeron.require_all(Laeron.root.join("lib", "extensions", "**", "*"))
 Laeron.require_all(Laeron.root.join("lib", "es_locks", "**", "*"))
-require "yell"
+require "eleetscript_env_setup.rb"
 
 # Load models
-Laeron.require_all(Laeron.root.join("lib", "models", "**", "*"))
+Laeron.require_all(Laeron.root.join("lib", "models", "concerns", "*"))
+Laeron.require_all(Laeron.root.join("lib", "models", "*.rb"))
 
 begin
   ActiveRecord::Base.connection

@@ -1,4 +1,6 @@
 class Room < ActiveRecord::Base
+  include Scriptable
+
   ExitHelpers.each_exit do |exit_name|
     define_method exit_name do
       if exits.has_key?(exit_name)
@@ -16,11 +18,7 @@ class Room < ActiveRecord::Base
 
   scope :name_like, ->(name) { where("name ILIKE ?", "%#{name}%") }
 
-  class << self
-    def engines
-      @engines ||= {}
-    end
-  end
+  script_var_name :room
 
   # --- Player Actions -------------------------------------------------------
 
@@ -57,7 +55,7 @@ class Room < ActiveRecord::Base
     end
   end
 
-  # --- Helpers --------------------------------------------------------------
+  # --- Overrides ------------------------------------------------------------
 
   def update_attributes(map)
     super
@@ -68,6 +66,8 @@ class Room < ActiveRecord::Base
     super
     reload_engine if prop == :script
   end
+
+  # --- Exit Management ------------------------------------------------------
 
   def remove_exit(dir, options = {})
     if has_exit?(dir)
@@ -101,6 +101,8 @@ class Room < ActiveRecord::Base
     end
   end
 
+  # --- Open/Closing Helpers -------------------------------------------------
+
   def open_exit(dir, open_opposite = true)
     if has_exit?(dir)
       door, lock = exits[dir][:door], exits[dir][:lock]
@@ -118,6 +120,65 @@ class Room < ActiveRecord::Base
     send(dir).open_exit(ExitHelpers.inverse(dir), false) if open_opposite
     :success
   end
+
+  def close_exit(dir, close_opposite = true)
+    if has_exit?(dir)
+      door = exits[dir][:door]
+      return :no_door unless door.present?
+      return :closed if !door[:open]
+      door[:open] = false
+      door[:close_at] = nil
+      save
+    else
+      return :no_exit
+    end
+    send(dir).close_exit(ExitHelpers.inverse(dir), false)
+    :success
+  end
+
+  def exit_open?(dir)
+    exit_status(dir) == :open
+  end
+
+  # --- Lock/Unlocking Helpers -----------------------------------------------
+
+  def unlock_exit(dir, player, unlock_opposite = true)
+    if has_exit?(dir)
+      door, lock = exits[dir][:door], exits[dir][:lock]
+      return :no_door unless door.present?
+      return :no_lock unless lock.present?
+      return :open if door[:open]
+      return :unlocked if lock[:unlocked]
+      lock[:unlocked] = true
+      unless lock[:timer] == :never
+        lock[:lock_at] = Time.now + lock[:timer].interval_value
+      end
+      save
+    else
+      :no_exit
+    end
+    send(dir).unlock_exit(ExitHelpers.inverse(dir), nil, false) if unlock_opposite
+    :success
+  end
+
+  def lock_exit(dir, lock_opposite = true)
+    if has_exit?(dir)
+      door, lock = exits[dir][:door], exits[dir][:lock]
+      return :no_door unless door.present?
+      return :no_lock unless lock.present?
+      return :open if door[:open]
+      return :locked if !lock[:unlocked]
+      lock[:unlocked] = false
+      lock[:lock_at] = nil
+      save
+    else
+      :no_exit
+    end
+    send(dir).lock_exit(ExitHelpers.inverse(dir), false) if lock_opposite
+    :success
+  end
+
+  # --- Exit Management Helpers ----------------------------------------------
 
   def add_door_to(direction, timer, options = {})
     if has_exit?(direction)
@@ -163,55 +224,10 @@ class Room < ActiveRecord::Base
     end
   end
 
-  def close_exit(dir, close_opposite = true)
-    if has_exit?(dir)
-      door = exits[dir][:door]
-      return :no_door unless door.present?
-      return :closed if !door[:open]
-      door[:open] = false
-      door[:close_at] = nil
-      save
-    else
-      return :no_exit
-    end
-    send(dir).close_exit(ExitHelpers.inverse(dir), false)
-    :success
-  end
+  # --- General Exit Helpers -------------------------------------------------
 
-  def unlock_exit(dir, player, unlock_opposite = true)
-    if has_exit?(dir)
-      door, lock = exits[dir][:door], exits[dir][:lock]
-      return :no_door unless door.present?
-      return :no_lock unless lock.present?
-      return :open if door[:open]
-      return :unlocked if lock[:unlocked]
-      lock[:unlocked] = true
-      unless lock[:timer] == :never
-        lock[:lock_at] = Time.now + lock[:timer].interval_value
-      end
-      save
-    else
-      :no_exit
-    end
-    send(dir).unlock_exit(ExitHelpers.inverse(dir), nil, false) if unlock_opposite
-    :success
-  end
-
-  def lock_exit(dir, lock_opposite = true)
-    if has_exit?(dir)
-      door, lock = exits[dir][:door], exits[dir][:lock]
-      return :no_door unless door.present?
-      return :no_lock unless lock.present?
-      return :open if door[:open]
-      return :locked if !lock[:unlocked]
-      lock[:unlocked] = false
-      lock[:lock_at] = nil
-      save
-    else
-      :no_exit
-    end
-    send(dir).lock_exit(ExitHelpers.inverse(dir), false) if lock_opposite
-    :success
+  def exit_array
+    exits.keys
   end
 
   def exit_status(dir)
@@ -232,13 +248,11 @@ class Room < ActiveRecord::Base
     end
   end
 
-  def exit_open?(dir)
-    exit_status(dir) == :open
-  end
-
   def has_exit?(dir)
     exits.has_key?(dir)
   end
+
+  # --- Helpers --------------------------------------------------------------
 
   def transmit(message, options = {})
     players_in_room.online.ids.each do |pid|
@@ -266,11 +280,15 @@ class Room < ActiveRecord::Base
     end
   end
 
+  def display_name
+    "[f:white:b]#{name}"
+  end
+
   def display_text(player)
     reload
     divider = TextHelpers.full_line("-")
     display = <<-ROOM
-\n[f:white:b]#{name}[reset]
+\n#{display_name}[reset]
 #{divider}
 [f:green]#{description}[reset]
 #{divider}
@@ -280,31 +298,7 @@ class Room < ActiveRecord::Base
     display
   end
 
-  def exit_array
-    exits.keys
-  end
-
   private
-
-  # --- Script Engines -------------------------------------------------------
-
-  def reload_engine
-    script_engine.reset
-    script_engine.evaluate(self.script || "")
-  end
-
-  def script_engine
-    reload
-    @engine ||= begin
-      Room.engines[id] ||= begin
-        engine = ES::SharedEngine.new
-        engine.evaluate(self.script || "")
-        engine
-      end
-    end
-    @engine["@room"] = self
-    @engine
-  end
 
   # --- Text Helpers ---------------------------------------------------------
 
@@ -332,5 +326,12 @@ class Room < ActiveRecord::Base
       "EXITS: " + has_exits.join(", ") + "[f:red]."
     end
     "[reset][f:red]#{str}"
+  end
+
+  def eleetscript_allow_methods
+    [
+      :display_name,
+      :transmit
+    ]
   end
 end

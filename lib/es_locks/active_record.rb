@@ -19,5 +19,5 @@ class ActiveRecord::Base
 
   def eleetscript_allow_methods
     :none
-  endasdfadsf
+  end
 end

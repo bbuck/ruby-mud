@@ -1,4 +1,4 @@
-class CreateNonplayablecharacters < ActiveRecord::Migration
+class CreateNonPlayableCharacters < ActiveRecord::Migration
   def change
     create_table :non_playable_characters do |t|
       t.integer :creator_id, null: false

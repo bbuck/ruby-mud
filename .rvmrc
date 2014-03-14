@@ -1,1 +1,1 @@
-rvm use 2.1.0@laeronmud --create
+rvm use 2.1.1@laeronmud --create

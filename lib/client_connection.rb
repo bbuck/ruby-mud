@@ -9,6 +9,10 @@ class ClientConnection < EM::Connection
         end
       end
     end
+
+    def eleetscript_allow_methods
+      :none
+    end
   end
 
   attr_reader :input_state
@@ -106,5 +110,9 @@ class ClientConnection < EM::Connection
       colorize: true,
       raw: false
     }
+  end
+
+  def eleetscript_allow_methods
+    [:send_text]
   end
 end

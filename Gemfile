@@ -1,4 +1,4 @@
-ruby "2.1.0"
+ruby "2.1.1"
 
 source "https://rubygems.org"
 
@@ -13,6 +13,6 @@ gem "enumerize"
 gem "activesupport"
 
 gem "bcrypt-ruby", require: "bcrypt"
-gem "eleetscript", "~> 0.0.17a"
+gem "eleetscript", "~> 0.0.19a"
 
 gem "pry"

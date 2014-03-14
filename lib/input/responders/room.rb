@@ -32,7 +32,7 @@ class RoomResponder < InputResponder
 #{footer}
 
     INFO
-    send(info)
+    send(text)
   end
 
   # --- Helpers --------------------------------------------------------------
@@ -59,12 +59,7 @@ class RoomResponder < InputResponder
   end
 
   def expand_direction(direction)
-    direction = direction.downcase.to_sym
-    if ExitHelpers::EXITS_EXPANDED.has_key?(direction)
-      ExitHelpers.expand(direction)
-    else
-      direction
-    end
+    ExitHelpers.expand(direction)
   end
 
   def create_and_edit_room(room_name)
@@ -75,9 +70,8 @@ class RoomResponder < InputResponder
   # --- Look Handlers --------------------------------------------------------
 
   parse_input_with(/\A(?:look|l) (northeast|ne|northwest|nw|southeast|se|southwest|sw|north|n|south|s|east|e|west|w|up|u|down|d)\z/) do |direction|
-    direction = direction.downcase.to_sym
+    direction = expand_direction(direction)
     if ExitHelpers.valid_exit?(direction)
-      direction = ExitHelpers.expand(direction)
       if current_room.has_exit?(direction)
         new_room = current_room.send(direction)
         send_room_description(new_room)
@@ -92,9 +86,9 @@ class RoomResponder < InputResponder
   parse_input_with(/\A(?:look|l) (.+)\z/) do |object|
     saw = current_room.player_looks_at(player, object)
     if saw
-      send_no_prompt_or_newline(saw)
+      send(saw)
     else
-      send_no_prompt("[f:green]" + DONT_SEE.sample)
+      send("[f:green]" + DONT_SEE.sample)
     end
   end
 
@@ -185,7 +179,7 @@ class RoomResponder < InputResponder
     if player.can_build?
       begin
         room = Room.find(room_id)
-        send_room_info
+        send_room_info(room)
       rescue ActiveRecord::RecordNotFound => e
         send("[f:yellow:b]There is no room with the id ##{room_id}")
       end

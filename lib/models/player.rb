@@ -103,6 +103,12 @@ class Player < ActiveRecord::Base
     end
   end
 
+  def send_text(text, opts = {})
+    if conn = connection
+      conn.send_text(text, opts)
+    end
+  end
+
   # --- Password functions ----------------------------------------------------
 
   def password
@@ -189,5 +195,14 @@ class Player < ActiveRecord::Base
 
   def admin?
     permissions == (BUILD_PERMISSION | ADMIN_PERMISSION | CONTROL_PERMISSION | SPAWN_PERMISSION | SUPER_ADMIN_PERMISSION)
+  end
+
+  # --- ES Locks -------------------------------------------------------------
+
+  def eleetscript_allow_methods
+    [
+      :display_name,
+      :send_text
+    ]
   end
 end

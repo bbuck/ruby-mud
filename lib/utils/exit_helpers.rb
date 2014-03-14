@@ -32,19 +32,27 @@ module ExitHelpers
     end
 
     def valid_exit?(exit)
+      exit = exit.to_sym
       EXITS.include?(exit)
     end
 
     def inverse(exit)
+      exit = exit.to_sym
       EXITS_INVERSE[exit]
     end
 
     def proper(exit)
+      exit = exit.to_sym
       EXITS_PROPER[exit]
     end
 
     def expand(exit)
-      EXITS_EXPANDED[exit]
+      exit = exit.to_sym
+      if EXITS_EXPANDED.has_key?(exit)
+        EXITS_EXPANDED[exit]
+      else
+        exit
+      end
     end
   end
 end
