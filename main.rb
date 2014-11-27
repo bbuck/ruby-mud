@@ -23,7 +23,7 @@ begin
   ActiveRecord::Base.connection
 rescue ActiveRecord::ConnectionNotEstablished => e
   ActiveRecord::Base.configurations = YAML.load(File.open(Laeron.root.join("config", "database.yml")))
-  ActiveRecord::Base.establish_connection(Laeron.env)
+  ActiveRecord::Base.establish_connection(Laeron.env.to_sym)
 end
 
 # Server Files

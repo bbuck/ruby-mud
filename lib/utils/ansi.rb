@@ -15,6 +15,9 @@ class ANSI
   FOREGROUND = "3"
   BACKGROUND = "4"
 
+  HIDDEN = "#{ESCAPE}[8m"
+  RESET = "#{ESCAPE}[0m"
+
   class << self
     COLORS.each_with_index do |color, index|
       define_method color do |bright = false|
@@ -24,14 +27,6 @@ class ANSI
       define_method "#{color}_background" do |bright = false|
         color(BACKGROUND, index, bright)
       end
-    end
-
-    def hidden
-      "#{ESCAPE}[8m"
-    end
-
-    def reset
-      "#{ESCAPE}[0m"
     end
 
     def wrap(text, color_method, bright = false)

@@ -14,6 +14,7 @@ class Room < ActiveRecord::Base
   serialize :exits, Hash
 
   has_many :players_in_room, class_name: "Player"
+  has_many :npcs_in_room, class_name: "NonPlayableCharacter"
   belongs_to :creator, class_name: "Player"
 
   scope :name_like, ->(name) { where("name ILIKE ?", "%#{name}%") }
@@ -31,9 +32,10 @@ class Room < ActiveRecord::Base
     transmit("[f:green]#{player.display_name} [f:green]enters from #{from_dir}.")
     player.connection.send_text(display_text(player), newline: false)
     script_engine.call(:player_entered, player, ExitHelpers.inverse(dir))
+    npcs_in_room.each { |npc| npc.player_entered(player) }
   end
 
-  def player_leaves(player, dir)
+  def player_left(player, dir)
     from_dir = ExitHelpers.proper(dir)
     text = "[f:green]#{player.display_name} [f:green]"
     if from_dir == "above"
@@ -44,11 +46,14 @@ class Room < ActiveRecord::Base
       text += "leaves to #{from_dir}."
     end
     transmit(text)
-    script_engine.call(:player_leaves, player, dir)
+    script_engine.call(:player_left, player, dir)
+    npcs_in_room.each { |npc| npc.player_left(player) }
   end
 
   def player_looks_at(player, object)
-    if players_in_room.with_username(object).count > 0
+    if object == "me" || object == "self"
+      player.display_description
+    elsif players_in_room.with_username(object).count > 0
       players_in_room.with_username(object).first.display_description
     else
       script_engine.call(:player_looks_at, player, object)
@@ -254,6 +259,11 @@ class Room < ActiveRecord::Base
 
   # --- Helpers --------------------------------------------------------------
 
+  def player_transmit(txt, player, message, opts = {})
+    transmist(txt, opts)
+    npcs_in_room.each { |npc| npc.player_says(player, message)}
+  end
+
   def transmit(message, options = {})
     players_in_room.online.ids.each do |pid|
       exclude_player = false
@@ -294,6 +304,7 @@ class Room < ActiveRecord::Base
 #{divider}
 #{exit_string}
     ROOM
+    display += "\n#{npc_string}" if npcs_in_room.count > 0
     display += "\n#{player_string(player)}" if players_in_room.where("id <> ?", player.id).online.count > 0
     display
   end
@@ -301,6 +312,14 @@ class Room < ActiveRecord::Base
   private
 
   # --- Text Helpers ---------------------------------------------------------
+
+  def npc_string
+    npc_text = []
+    npcs_in_room.each do |npc|
+      npc_text << "[f:green]#{npc.display_name} [f:green]is standing here."
+    end
+    npc_text.join("\n")
+  end
 
   def player_string(viewing_player)
     players = []

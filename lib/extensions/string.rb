@@ -1,3 +1,17 @@
+require 'erb'
+
+class ERBContext
+  def initialize(hash)
+    hash.each_pair do |key, value|
+      singleton_class.send(:define_method, key) { value }
+    end
+  end
+
+  def get_binding
+    binding
+  end
+end
+
 class String
   def purge_colors
     self.gsub(/\[reset\]/i, "").gsub(/\[[fb]:.+?\]/i, "")
@@ -5,8 +19,8 @@ class String
 
   def colorize(opts = {})
     opts = default_colorize_options.merge(opts)
-    ret = self.gsub(/\[reset\]/i, ANSI::reset)
-    ret = ret.gsub(/\[([fb]:(.+?))\]/) do
+    ret = gsub(/\[reset\]/i, ANSI::RESET)
+    ret = ret.gsub(/(?<!\]\[)\[([fb]:(.+?))\]/) do
       code_tag = $1
       matches = code_tag.match(/([fb]):(.+)/i)
       method = matches[2] + (matches[1] == "f" ? "" : "_background")
@@ -16,22 +30,23 @@ class String
       else
         false
       end
-      color = if ANSI::respond_to?(method)
-        ANSI::send(method, bright)
+      color = if ANSI.respond_to?(method)
+        ANSI.send(method, bright)
       else
         "[#{Regexp.last_match[0]}]"
       end
       if bright
         color
       else
-        ANSI::reset + color
+        ANSI::RESET + color
       end
     end
-    ret += ANSI::reset if opts[:include_reset]
+    ret = ret.gsub("][[", "[")
+    ret += ANSI::RESET if opts[:include_reset]
     ret
   end
 
-  def line_split(size = 80)
+  def line_split(size = Laeron.config.text.line_length)
     buffer = []
     i = 0
     count = 0
@@ -81,7 +96,7 @@ class String
   def interval_value
     time = self.scan(/(\d+)([yMwdhms])/).inject(0) do |total, (amount, type)|
       amount = amount.to_i
-      total + case type
+      amount = case type
       when "y"
         amount.years
       when "M"
@@ -97,7 +112,12 @@ class String
       when "s"
         amount.seconds
       end
+      total + amount
     end
+  end
+
+  def erb(assigns = {})
+    ERB.new(self).result(ERBContext.new(assigns).get_binding)
   end
 
   private

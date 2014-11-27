@@ -9,32 +9,6 @@ class RoomResponder < InputResponder
     "You stare at the ground intently expecting to see something."
   ]
 
-  # --- Templates Helpers ----------------------------------------------------
-
-  def send_room_info(room = nil)
-    room = current_room if room.nil?
-    exit_str = room.exit_array.join(", ")
-    header = TextHelpers.header_with_title("[f:green]Quick Room Info")
-    footer = TextHelpers.full_line("=")
-    text = <<-INFO
-
-[f:white:b]
-#{header}
-
-  [reset][f:green]Created At: [f:white:b]#{room.created_at.localtime.strftime(TimeFormats::LONG_WITH_TIME)}
-  [reset][f:green]Created By: [f:white:b]#{room.creator.username}
-
-  [reset][f:green]Room ID:    [f:white:b]##{room.id}
-  [reset][f:green]Title:      [f:white:b]#{room.name}
-  [reset][f:green]Exits:      [f:white:b]#{exit_str}
-  [reset][f:green]Players:    [f:white:b]#{room.players_in_room.online.count}
-[f:white:b]
-#{footer}
-
-    INFO
-    send(text)
-  end
-
   # --- Helpers --------------------------------------------------------------
 
   def travel(direction)
@@ -44,7 +18,7 @@ class RoomResponder < InputResponder
         cur_room, new_room = current_room, current_room.send(direction)
         new_room.player_enters(player, direction)
         player.update_attribute(:room, new_room)
-        cur_room.player_leaves(player, direction)
+        cur_room.player_left(player, direction)
       else
         case current_room.exit_status(direction)
         when :locked
@@ -60,11 +34,6 @@ class RoomResponder < InputResponder
 
   def expand_direction(direction)
     ExitHelpers.expand(direction)
-  end
-
-  def create_and_edit_room(room_name)
-    room = Room.create(name: room_name, description: DEFAULT_ROOM_DESCRIPTION, creator: player)
-    RoomBuilderResponder.new(connection).edit_room(room)
   end
 
   # --- Look Handlers --------------------------------------------------------
@@ -85,7 +54,7 @@ class RoomResponder < InputResponder
 
   parse_input_with(/\A(?:look|l) (.+)\z/) do |object|
     saw = current_room.player_looks_at(player, object)
-    if saw
+    if saw && saw.kind_of?(String)
       send(saw)
     else
       send("[f:green]" + DONT_SEE.sample)
@@ -168,68 +137,6 @@ class RoomResponder < InputResponder
       when :no_exit
         send("[f:yellow:b]There is no exit in that direction!")
       end
-    end
-  end
-
-  parse_input_with
-
-  # --- Initiate Room Builder methods ----------------------------------------
-
-  parse_input_with(/\A@room info #?(\d+)\z/) do |room_id|
-    if player.can_build?
-      begin
-        room = Room.find(room_id)
-        send_room_info(room)
-      rescue ActiveRecord::RecordNotFound => e
-        send("[f:yellow:b]There is no room with the id ##{room_id}")
-      end
-    else
-      send_not_authorized
-    end
-  end
-
-  parse_input_with(/\A@room info\z/) do |conn|
-    if player.can_build?
-      send_room_info
-    else
-      send_not_authorized
-    end
-  end
-
-  parse_input_with(/\A@dig (.+)\z/) do |room_name|
-    if player.can_build?
-      create_and_edit_room(room_name)
-    else
-      send_not_authorized
-    end
-  end
-
-  parse_input_with(/\A@dig\z/) do
-    if player.can_build?
-      create_and_edit_room(DEFAULT_ROOM_NAME)
-    else
-      send_not_authorized
-    end
-  end
-
-  parse_input_with(/\A@edit room #?(\d+)\z/) do |room_id|
-    if player.can_build?
-      begin
-        room = Room.find(room_id)
-        RoomBuilderResponder.new(connection).edit_room(room)
-      rescue ActiveRecord::RecordNotFound => e
-        send("[f:yellow:b]There is no room with the id ##{room_id}")
-      end
-    else
-      send_not_authorized
-    end
-  end
-
-  parse_input_with(/\A@edit room\z/) do
-    if player.can_build?
-      RoomBuilderResponder.new(connection).edit_room(current_room)
-    else
-      send_not_authorized
     end
   end
 end

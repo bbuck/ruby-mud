@@ -33,6 +33,10 @@ class InputResponder
     @connection = connection
   end
 
+  def create_responder(klass)
+    klass.new(connection)
+  end
+
   def respond_to(input)
     current_mode = if connection.internal_state.kind_of?(Hash)
       connection.internal_state[:mode] || :__default

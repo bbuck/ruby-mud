@@ -1,18 +1,23 @@
-ruby "2.1.1"
+ruby "2.1.5"
 
 source "https://rubygems.org"
 
-gem "rake"
-gem "commander"
-gem "eventmachine"
+gem "rake", "~> 10.3.2"
+gem "eventmachine", "~> 1.0.3"
 
-gem "pg"
-gem "activerecord"
-gem "enumerize"
+gem "pg", "~> 0.17.1"
 
-gem "activesupport"
+# Rails plugins
+gem "activerecord", "~> 4.1.8"
+gem "activesupport", "~> 4.1.8"
 
-gem "bcrypt-ruby", require: "bcrypt"
+# DB Tools
+gem "enumerize", "~> 0.8.0"
+gem "bcrypt", "~> 3.1.9"
+
+# Scripting Engine
 gem "eleetscript", "~> 0.0.19a"
 
-gem "pry"
+group :development do
+  gem "pry"
+end

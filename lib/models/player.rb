@@ -7,6 +7,8 @@ class Player < ActiveRecord::Base
   ADMIN_PERMISSION = 8
   SUPER_ADMIN_PERMISSION = 16
 
+  serialize :game_data, Hash
+
   has_many :tracking, class_name: "PlayerTracking"
   belongs_to :room
   has_many :created_rooms, class_name: "Room", foreign_key: :creator_id
@@ -76,7 +78,6 @@ class Player < ActiveRecord::Base
   end
 
   def display_description
-    line = TextHelpers.full_line("-")
     text = <<-DESC
 
 [f:green]You look at #{display_name}.
@@ -200,7 +201,7 @@ class Player < ActiveRecord::Base
   # --- ES Locks -------------------------------------------------------------
 
   def eleetscript_allow_methods
-    [
+    @_eleetscript_allow_methods ||= [
       :display_name,
       :send_text
     ]

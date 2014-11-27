@@ -140,6 +140,17 @@ Enter Option >>
     send_no_prompt(help)
   end
 
+  def send_edit_npc_menu
+    header = TextHelpers.header_with_title("[f:green]Edit NPCs")
+    footer = TextHelpers.full_line("=")
+    menu = <<-MENU
+      #{header}
+
+      #{footer}
+    MENU
+    send_no_prompt(menu)
+  end
+
   # --- Helpers --------------------------------------------------------------
 
   def editing_room
@@ -273,9 +284,8 @@ Enter Option >>
   end
 
   parse_input_with(/\A2\z/) do
-    editor = EditorResponder.new(connection)
-    editor.open_editor(editing_room, :description, allow_colors: true) do |connection|
-      RoomBuilderResponder.new(connection).send_room_builder_menu
+    create_responder(EditorResponder).open_editor(editing_room, :description, allow_colors: true) do
+      create_responder(RoomBuilderResponder).send_room_builder_menu
     end
   end
 
@@ -285,9 +295,8 @@ Enter Option >>
   end
 
   parse_input_with(/\A5\z/) do
-    editor = EditorResponder.new(connection)
-    editor.open_editor(editing_room, :script, syntax: true) do |connection|
-      RoomBuilderResponder.new(connection).send_room_builder_menu
+    create_responder(EditorResponder).open_editor(editing_room, :script, syntax: true) do
+      create_responder(RoomBuilderResponder).send_room_builder_menu
     end
   end
 

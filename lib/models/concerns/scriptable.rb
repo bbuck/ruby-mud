@@ -22,6 +22,10 @@ module Scriptable
     script_engine.evaluate(self.script || "")
   end
 
+  def update_script_variables(engine)
+    engine[self.class._script_var_name] = self
+  end
+
   def script_engine
     reload
     self._engine ||= begin
@@ -31,7 +35,7 @@ module Scriptable
         engine
       end
     end
-    _engine[self.class._script_var_name] = self
+    update_script_variables(_engine)
     _engine
   end
 end

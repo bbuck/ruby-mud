@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 1393266793) do
+ActiveRecord::Schema.define(version: 1416702393) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -55,6 +55,8 @@ ActiveRecord::Schema.define(version: 1393266793) do
     t.integer  "room_id"
     t.integer  "permissions",   default: 0
     t.text     "description"
+    t.string   "prompt"
+    t.text     "game_data"
   end
 
   add_index "players", ["username"], name: "index_players_on_username", using: :btree

@@ -10,11 +10,11 @@ class EditorResponder < InputResponder
       replacement: "[f:cyan]$1[reset]"
     },
     constant: {
-      rx: /(?<=\b)([A-Z][a-zA-Z_]*)/,
+      rx: /(?<=\b)([A-Z][a-zA-Z_]*)(?=(?:[^"\\]*(?:\\.|"([^"\\]*\\.)*[^"\\]*"))*[^"]*\z)/,
       replacement: "[f:yellow:b]$1[reset]"
     },
     instance_method: {
-      rx: /(#{IDENTIFIER_RX})\s+?do/,
+      rx: /(#{IDENTIFIER_RX})\s+?do\b/,
       replacement: "[f:magenta]$1 [f:blue:b]do[reset]"
     },
     instance_class_identifier: {
@@ -29,8 +29,12 @@ class EditorResponder < InputResponder
       rx: /(r".*?"[img]{0,3})/,
       replacement: "[f:green:b]$1[reset]"
     },
+    string: {
+      rx: /((?<!r)".*?")/,
+      replacement: "[f:green]$1[reset]"
+    },
     keywords: {
-      rx: /(?<=\b|\A)(end|if|else|elsif|return|next|continue|while|property)(?=\b|\z)/,
+      rx: /\b(end|if|else|elsif|return|next|continue|while|property)\b/,
       replacement: "[f:blue:b]$1[reset]"
     },
     reserved_words: {
@@ -49,6 +53,7 @@ class EditorResponder < InputResponder
           new_line.gsub!(details[:rx]) do
             new_text = details[:replacement].dup
             Regexp.last_match[1..-1].each_with_index do |match, idx|
+              next if match.nil?
               new_text.gsub!("$#{idx + 1}", match)
             end
             new_text
@@ -57,6 +62,12 @@ class EditorResponder < InputResponder
       end
     end
     new_line
+  end
+
+  def escape(line)
+    line.gsub(/(\[[fb]:.+?\])/) do
+      "][#{$1}"
+    end
   end
 
   def send_edit_menu
@@ -70,7 +81,7 @@ class EditorResponder < InputResponder
     padding = buffer.length.to_s.length
     display_lines = []
     buffer.each_with_index do |line, idx|
-      display_lines << "[reset]#{idx.next.to_s.rjust(padding)}) #{highlight(line)}"
+      display_lines << "[reset]#{idx.next.to_s.rjust(padding)}) #{highlight(escape(line))}"
     end
     display_lines = display_lines.join("")
     header = "==== Edit #{editing_property.to_s.capitalize} "
@@ -154,7 +165,7 @@ Enter option >>
     restore_state = internal_state[:restore_state]
     change_input_state(restore_state[:input_state])
     self.internal_state = restore_state[:internal_state]
-    restore_state[:restore_cb].call(connection)
+    restore_state[:restore_cb].call
   end
 
   def open_editor(object, property, opts = {}, &block)
@@ -292,6 +303,7 @@ Enter option >>
       send_no_prompt("[f:green]Current:")
       text = buffer[idx]
       text = text.purge_colors unless options[:allow_colors] || options[:syntax]
+      text = highlight(escape(text)) if options[:syntax]
       send_no_prompt(text)
       send_no_prompt_or_newline("\n[f:green]>> ")
     else

@@ -1,6 +1,6 @@
 require "./main"
 
-task :default, :run
+task default: :run
 
 # Load ActiveRecord tasks
 include ActiveRecord::Tasks
@@ -8,20 +8,16 @@ DatabaseTasks.database_configuration = YAML.load(File.open(Laeron.root.join("con
 DatabaseTasks.db_dir = "db"
 DatabaseTasks.migrations_paths = "db"
 ActiveRecord::Base.configurations = DatabaseTasks.database_configuration
-ActiveRecord::Base.establish_connection(Laeron.env)
+ActiveRecord::Base.establish_connection(Laeron.env.to_sym)
 
 desc "Run the Learon game server"
 task :run do
-  `scripts/laeron start`
+  system("scripts/laeron run")
 end
 
 desc "Run the Laeron development console"
 task :console do
-  `scripts/laeron console`
-end
-
-desc "Load the environment"
-task :environment do
+  system("scripts/laeron console")
 end
 
 load "active_record/railties/databases.rake"

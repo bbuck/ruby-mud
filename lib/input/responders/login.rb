@@ -71,7 +71,7 @@ Try to choose a name that is unique for your character and unique to the world.
   end
 
   def send_enter_password_text(username)
-    send_no_prompt_or_newline("\nPlease enter a password for \"[f:cyan:b]#{username}[reset]\":\n#{ANSI::hidden}")
+    send_no_prompt_or_newline("\nPlease enter a password for \"[f:cyan:b]#{username}[reset]\":\n#{ANSI::HIDDEN}")
   end
 
   def send_initial_greeting
@@ -119,7 +119,7 @@ Try to choose a name that is unique for your character and unique to the world.
   responders_for_mode :create_password do
     parse_input_with(/(.+)/) do |password|
       if valid_password?(password)
-        send_no_prompt("Please reenter your password:#{ANSI::hidden}")
+        send_no_prompt("Please reenter your password:#{ANSI::HIDDEN}")
         change_mode(:confirm_password)
         internal_state[:password] = password
       else
@@ -180,7 +180,7 @@ Try to choose a name that is unique for your character and unique to the world.
       self.internal_state = {mode: :confirm_name, username: username.capitalize}
     else
       self.internal_state = {mode: :enter_password, player: players.first}
-      send_no_prompt_or_newline("\nEnter the password for \"[f:white:b]#{username.capitalize}[reset]\"\n#{ANSI::hidden}")
+      send_no_prompt_or_newline("\nEnter the password for \"[f:white:b]#{username.capitalize}[reset]\"\n#{ANSI::HIDDEN}")
     end
   end
 end
