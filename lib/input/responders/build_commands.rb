@@ -4,25 +4,7 @@ module Input
       # --- Templates Helpers ----------------------------------------------------
 
       def send_room_info(room = current_room)
-        exit_str = room.exit_array.join(", ")
-        header = Helpers::Text.header_with_title("[f:green]Quick Room Info")
-        footer = Helpers::Text.full_line("=")
-        text = <<-INFO.strip_heredoc
-
-          [f:white:b]
-          #{header}
-            [reset][f:green]Created At: [f:white:b]#{room.created_at.localtime.strftime(TimeFormats::LONG_WITH_TIME)}
-            [reset][f:green]Created By: [f:white:b]#{room.creator.username}
-
-            [reset][f:green]Room ID:    [f:white:b]##{room.id}
-            [reset][f:green]Title:      [f:white:b]#{room.name}
-            [reset][f:green]Exits:      [f:white:b]#{exit_str}
-            [reset][f:green]Players:    [f:white:b]#{room.players_in_room.online.count}
-          [f:white:b]
-          #{footer}
-
-        INFO
-        send(text)
+        send(Helpers::View.render("responder.build_commands.room_info", {room: room}))
       end
 
       # --- Helpers --------------------------------------------------------------

@@ -73,9 +73,7 @@ class String
           str = new_str
           count = str.length
         else
-          if self[i + 1] == "\n"
-            i += 1
-          end
+          i += 1 if self[i + 1] == "\n"
           buffer << str + "\n"
           count = 0
           str = ""
