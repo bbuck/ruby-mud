@@ -20,7 +20,7 @@ class String
   def colorize(opts = {})
     opts = default_colorize_options.merge(opts)
     ret = gsub(/\[reset\]/i, ANSI::RESET)
-    ret = ret.gsub(/(?<!\]\[)\[([fb]:(.+?))\]/) do
+    ret = ret.gsub(/(?<!__ESC__)\[([fb]:(.+?))\]/) do
       code_tag = $1
       matches = code_tag.match(/([fb]):(.+)/i)
       method = matches[2] + (matches[1] == "f" ? "" : "_background")
@@ -41,7 +41,7 @@ class String
         ANSI::RESET + color
       end
     end
-    ret = ret.gsub("][[", "[")
+    ret = ret.gsub("__ESC__[", "[")
     ret += ANSI::RESET if opts[:include_reset]
     ret
   end

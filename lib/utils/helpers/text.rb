@@ -1,5 +1,5 @@
-module TextHelpers
-  class << self
+module Helpers
+  module Text
     def header_with_title(title, char = "=", line_length = Laeron.config.text.line_length)
       header = char * 4
       header += " #{title} "
@@ -8,8 +8,8 @@ module TextHelpers
       "[f:white:b]#{header}[reset]"
     end
 
-    def full_line(char, line_length = Laeron.config.text.line_length)
-      char * line_length
+    def full_line(char, line_cap = char, line_length = Laeron.config.text.line_length)
+      line_cap + (char * (line_length - 2)) + line_cap
     end
 
     def string(*args)
@@ -19,5 +19,7 @@ module TextHelpers
         args.join("\n")
       end
     end
+
+    module_function *instance_methods
   end
 end

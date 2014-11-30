@@ -1,58 +1,24 @@
 class Fixnum
-  def seconds
-    self
-  end
-
-  def minutes
-    seconds * 60
-  end
-  alias_method :minute, :minutes
-
-  def hours
-    minutes * 60
-  end
-  alias_method :hour, :hours
-
-  def days
-    hours * 24
-  end
-  alias_method :day, :days
-
-  def weeks
-    days * 7
-  end
-  alias_method :week, :weeks
-
-  def months
-    days * 30
-  end
-  alias_method :month, :months
-
-  def years
-    weeks * 52
-  end
-  alias_method :year, :years
-
   def long_time_string
     str = ""
     time = self
-    years = time / 1.year
-    time = time % 1.year
+    years = time / 1.year.to_i
+    time = time % 1.year.to_i
 
-    months = time / 1.month
-    time = time % 1.month
+    months = time / 1.month.to_i
+    time = time % 1.month.to_i
 
-    weeks = time / 1.week
-    time = time % 1.week
+    weeks = time / 1.week.to_i
+    time = time % 1.week.to_i
 
-    days = time / 1.day
-    time = time % 1.day
+    days = time / 1.day.to_i
+    time = time % 1.day.to_i
 
-    hours = time / 1.hour
-    time = time % 1.hour
+    hours = time / 1.hour.to_i
+    time = time % 1.hour.to_i
 
-    minutes = time / 1.minute
-    seconds = time % 1.minute
+    minutes = time / 1.minute.to_i
+    seconds = time % 1.minute.to_i
 
     str += "#{years} years " if years > 0
     str += "#{months} months " if months > 0

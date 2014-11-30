@@ -11,10 +11,18 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 1416702393) do
+ActiveRecord::Schema.define(version: 1417153645) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
+
+  create_table "factions", force: true do |t|
+    t.string  "name"
+    t.integer "hostility"
+    t.integer "friendly_tier"
+    t.integer "trusted_tier"
+    t.integer "exalted_tier"
+  end
 
   create_table "game_settings", force: true do |t|
     t.string   "content_title",   default: ""
@@ -60,6 +68,19 @@ ActiveRecord::Schema.define(version: 1416702393) do
   end
 
   add_index "players", ["username"], name: "index_players_on_username", using: :btree
+
+  create_table "players_reputations", force: true do |t|
+    t.integer "player_id"
+    t.integer "reputation_id"
+  end
+
+  add_index "players_reputations", ["player_id", "reputation_id"], name: "index_players_reputations_on_player_id_and_reputation_id", using: :btree
+  add_index "players_reputations", ["player_id"], name: "index_players_reputations_on_player_id", using: :btree
+
+  create_table "reputations", force: true do |t|
+    t.integer "faction_id"
+    t.integer "value"
+  end
 
   create_table "rooms", force: true do |t|
     t.string   "name"

@@ -36,17 +36,21 @@ module Laeron
         Signal.trap("INT") { kill_server }
         Signal.trap("TERM") { kill_server }
 
-        EM.start_server Laeron.config.host, Laeron.config.port, ClientConnection
+        EM.start_server(Laeron.config.host, Laeron.config.port, Net::ClientConnection)
         config.logger.debug("Laeron running on #{Laeron.config.host}:#{Laeron.config.port}")
 
-        EM::PeriodicTimer.new(1.minute) { ClientConnection.timeout_inactive_players }
+        EM::PeriodicTimer.new(1.minute) { Net::ClientConnection.timeout_inactive_players }
         EM::PeriodicTimer.new(1.minute) { RoomHelpers.check_all_doors_and_locks }
       end
     end
 
-    def require_all(path)
+    def require_all(path, recursive = true)
       Dir.glob(path).each do |file|
-        require file
+        if !File.directory?(file)
+          require file
+        elsif recursive
+          require_all(Pathname.new(file).join("*").to_s)
+        end
       end
     end
   end

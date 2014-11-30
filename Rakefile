@@ -12,12 +12,26 @@ ActiveRecord::Base.establish_connection(Laeron.env.to_sym)
 
 desc "Run the Learon game server"
 task :run do
-  system("scripts/laeron run")
+  exec("scripts/laeron run")
 end
 
 desc "Run the Laeron development console"
 task :console do
-  system("scripts/laeron console")
+  exec("scripts/laeron console")
+end
+
+desc "Perform a migration through the Laeron script with the given name."
+task :create_migration, [:name] do |t, args|
+  if args[:name].nil?
+    puts "A name for the migration must be specified!"
+  else
+    exec("scripts/laeron migrate #{args[:name]}")
+  end
+end
+
+# Required for active record migrations
+task :environment do
+  # empty on purpose
 end
 
 load "active_record/railties/databases.rake"

@@ -1,8 +1,9 @@
 class Room < ActiveRecord::Base
   include Scriptable
 
-  ExitHelpers.each_exit do |exit_name|
+  Helpers::Exit.each do |exit_name|
     define_method exit_name do
+      reload
       if exits.has_key?(exit_name)
         Room.find(exits[exit_name][:destination])
       else
@@ -25,18 +26,19 @@ class Room < ActiveRecord::Base
 
   def player_appears(player)
     transmit("[f:green]#{player.display_name} appears magically.")
+    script_engine.call(:player_appears, player)
   end
 
   def player_enters(player, dir)
-    from_dir = ExitHelpers.proper(ExitHelpers.inverse(dir))
+    from_dir = Helpers::Exit.proper(Helpers::Exit.inverse(dir))
     transmit("[f:green]#{player.display_name} [f:green]enters from #{from_dir}.")
     player.connection.send_text(display_text(player), newline: false)
-    script_engine.call(:player_entered, player, ExitHelpers.inverse(dir))
+    script_engine.call(:player_entered, player, Helpers::Exit.inverse(dir))
     npcs_in_room.each { |npc| npc.player_entered(player) }
   end
 
   def player_left(player, dir)
-    from_dir = ExitHelpers.proper(dir)
+    from_dir = Helpers::Exit.proper(dir)
     text = "[f:green]#{player.display_name} [f:green]"
     if from_dir == "above"
       text += "leaves up."
@@ -78,7 +80,7 @@ class Room < ActiveRecord::Base
     if has_exit?(dir)
       if options[:unlink_other]
         other_room = send(dir)
-        other_room.remove_exit(ExitHelpers.inverse(dir))
+        other_room.remove_exit(Helpers::Exit.inverse(dir))
       end
       exits.delete(dir)
       save
@@ -86,7 +88,7 @@ class Room < ActiveRecord::Base
   end
 
   def add_exit(dir, destination, options = {})
-    if ExitHelpers.valid_exit?(dir)
+    if Helpers::Exit.valid?(dir)
       new_exit = exits[dir] = { destination: (destination.kind_of?(Room) ? destination.id : destination) }
       if options[:door]
         new_exit[:door] = { open: false, timer: options[:door], close_at: nil }
@@ -101,7 +103,7 @@ class Room < ActiveRecord::Base
       save
       if options[:link_opposite]
         other_room = (destination.kind_of?(Room) ? destination : Room.find(destination))
-        other_room.add_exit(ExitHelpers.inverse(dir), self.id)
+        other_room.add_exit(Helpers::Exit.inverse(dir), self.id)
       end
     end
   end
@@ -122,7 +124,7 @@ class Room < ActiveRecord::Base
     else
       return :no_exit
     end
-    send(dir).open_exit(ExitHelpers.inverse(dir), false) if open_opposite
+    send(dir).open_exit(Helpers::Exit.inverse(dir), false) if open_opposite
     :success
   end
 
@@ -137,7 +139,7 @@ class Room < ActiveRecord::Base
     else
       return :no_exit
     end
-    send(dir).close_exit(ExitHelpers.inverse(dir), false)
+    send(dir).close_exit(Helpers::Exit.inverse(dir), false)
     :success
   end
 
@@ -162,7 +164,7 @@ class Room < ActiveRecord::Base
     else
       :no_exit
     end
-    send(dir).unlock_exit(ExitHelpers.inverse(dir), nil, false) if unlock_opposite
+    send(dir).unlock_exit(Helpers::Exit.inverse(dir), nil, false) if unlock_opposite
     :success
   end
 
@@ -179,7 +181,7 @@ class Room < ActiveRecord::Base
     else
       :no_exit
     end
-    send(dir).lock_exit(ExitHelpers.inverse(dir), false) if lock_opposite
+    send(dir).lock_exit(Helpers::Exit.inverse(dir), false) if lock_opposite
     :success
   end
 
@@ -190,7 +192,7 @@ class Room < ActiveRecord::Base
       exits[direction.to_sym][:door] = { open: false, timer: timer, close_at: nil }
       save
       if options[:add_to_link]
-        send(direction).add_door_to(ExitHelpers.inverse(direction), timer)
+        send(direction).add_door_to(Helpers::Exit.inverse(direction), timer)
       end
     end
   end
@@ -202,7 +204,7 @@ class Room < ActiveRecord::Base
       exits[direction][:lock] = { unlocked: false, timer: timer, lock_at: nil }
       save
       if options[:add_to_link]
-        send(direction).add_lock_to(ExitHelpers.inverse(direction), timer)
+        send(direction).add_lock_to(Helpers::Exit.inverse(direction), timer)
       end
     end
   end
@@ -212,7 +214,7 @@ class Room < ActiveRecord::Base
       exits[direction.to_sym].delete(:lock)
       save
       if options[:remove_from_link]
-        send(direction).remove_lock_from(ExitHelpers.inverse(direction))
+        send(direction).remove_lock_from(Helpers::Exit.inverse(direction))
       end
     end
   end
@@ -224,7 +226,7 @@ class Room < ActiveRecord::Base
       exits[direction].delete(:lock)
       save
       if options[:remove_from_link]
-        send(direction).remove_door_from(ExitHelpers.inverse(direction))
+        send(direction).remove_door_from(Helpers::Exit.inverse(direction))
       end
     end
   end
@@ -260,7 +262,7 @@ class Room < ActiveRecord::Base
   # --- Helpers --------------------------------------------------------------
 
   def player_transmit(txt, player, message, opts = {})
-    transmist(txt, opts)
+    transmit(txt, opts)
     npcs_in_room.each { |npc| npc.player_says(player, message)}
   end
 
@@ -296,7 +298,7 @@ class Room < ActiveRecord::Base
 
   def display_text(player)
     reload
-    divider = TextHelpers.full_line("-")
+    divider = Helpers::Text.full_line("-")
     display = <<-ROOM
 \n#{display_name}[reset]
 #{divider}
@@ -348,7 +350,7 @@ class Room < ActiveRecord::Base
   end
 
   def eleetscript_allow_methods
-    [
+    @_eleetscript_allow_methods ||= [
       :display_name,
       :transmit
     ]

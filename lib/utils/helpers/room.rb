@@ -1,5 +1,5 @@
-module RoomHelpers
-  class << self
+module Helpers
+  module Room
     def check_all_doors_and_locks
       Laeron.config.logger.debug("Starting a door/lock check.")
       now = Time.now
@@ -20,5 +20,7 @@ module RoomHelpers
         end
       end
     end
+
+    module_function *instance_methods
   end
 end

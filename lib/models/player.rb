@@ -12,6 +12,7 @@ class Player < ActiveRecord::Base
   has_many :tracking, class_name: "PlayerTracking"
   belongs_to :room
   has_many :created_rooms, class_name: "Room", foreign_key: :creator_id
+  has_and_belongs_to_many :reputations
 
   scope :with_username, ->(username) { where("lower(username) = ?", username.downcase) }
   scope :online, -> { where(id: connections.keys) }

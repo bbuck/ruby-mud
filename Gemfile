@@ -16,7 +16,7 @@ gem "enumerize", "~> 0.8.0"
 gem "bcrypt", "~> 3.1.9"
 
 # Scripting Engine
-gem "eleetscript", "~> 0.0.19a"
+gem "eleetscript", "~> 0.0.20a"
 
 group :development do
   gem "pry"
