@@ -40,7 +40,7 @@ module Laeron
         config.logger.debug("Laeron running on #{Laeron.config.host}:#{Laeron.config.port}")
 
         EM::PeriodicTimer.new(1.minute) { Net::ClientConnection.timeout_inactive_players }
-        EM::PeriodicTimer.new(1.minute) { RoomHelpers.check_all_doors_and_locks }
+        EM::PeriodicTimer.new(1.minute) { Helpers::Room.check_all_doors_and_locks }
       end
     end
 

@@ -1,0 +1,52 @@
+
+<%= Helpers::Text.header_with_title("[f:green]Edit Exits Help") %>
+
+  [f:green]For all commands add "here" to the end to make them only operate on the
+    room you are editing. By default all commands that add exits will add the
+    same to the room you link it to.
+[f:green]
+  Point a direction to a specific room by specifying the exit followed by the
+    room number.
+[f:white:b]
+    north 10
+    south #33
+    east 22 here
+[f:green]
+  Clear the room that an exit points to (remove an exit)
+[f:white:b]
+    reset north
+    reset down
+    reset south here
+[f:green]
+  Search for Room IDs by room name (displays up to 10 matches).
+[f:white:b]
+    search House
+[f:green]
+  Add a door to an exit that automatically closes after a given interval (leave
+    off the interval if you don't want it to automatically close).
+[f:white:b]
+    close north after 10m
+    close south
+    close northeast here
+    close south after 3m here
+[f:green]
+  Remove a door and lock from an exit.
+[f:white:b]
+    open north
+    open west here
+[f:green]
+  Add a lock to an exit that automatically locks after a given interval (leave
+    off the interval if you don't want it to automatically lock). Adding a
+    lock adds a door that never closes automatically.
+[f:white:b]
+    lock north after 10m
+    lock south
+    lock up here
+    lock down after 3m here
+[f:green]
+  Remove a lock from an exit.
+[f:white:b]
+    unlock east
+    unlock southeast here
+
+[f:white:b]<%= Helpers::Text.full_line("=") %>

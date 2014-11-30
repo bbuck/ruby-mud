@@ -9,28 +9,7 @@ module Input
         room = editing_room if room.nil?
         room.reload
         divider = Helpers::Text.full_line("-", "+")
-        text = <<-MENU.strip_heredoc
-
-          [f:white:b]
-          #{divider}
-          |   [f:green]Room Builder (v 1.0 by Brandon Buck)[f:white:b]                                       |
-          #{divider}
-          [f:green]
-            = Room ##{room.id} - [f:white:b]#{room.name}
-
-            [f:white:b][1][f:green] Edit Room Name
-            [f:white:b][2][f:green] Edit Room Description
-            [f:white:b][3][f:green] Edit Room Exits
-            [f:white:b][4][f:green] Edit NPCs (NYI)
-            [f:white:b][5][f:green] Edit Script
-            [f:white:b][6][f:green] Delete Room
-
-            [f:white:b][7][f:green] Exit Editor
-          [f:white:b]
-          #{divider}
-          [f:green]
-          Enter Option >>
-        MENU
+        text = Helpers::View.render("responder.room_builder.main_menu", {room: room, divider: divider})
         send_no_prompt_or_newline(text)
       end
 
@@ -39,9 +18,9 @@ module Input
         room.reload
         exit_info = Helpers::Exit.map do |exit_name|
           details = room.exits[exit_name]
-          str = "          [f:green]#{exit_name.to_s.capitalize.ljust(9)} -> "
+          str = "    [f:green]#{exit_name.to_s.capitalize.ljust(9)} -> "
           if room.has_exit?(exit_name)
-            spaces = "                             "
+            spaces = "                 "
             str += "[f:white:b]#{room.send(exit_name).name}"
             if details.has_key?(:door)
               str += if details[:door][:timer] == :never
@@ -62,85 +41,12 @@ module Input
           end
           str
         end
-        exit_info = exit_info.join("\n      ")
-        header = Helpers::Text.header_with_title("[f:green]Edit Exits")
-        footer = Helpers::Text.full_line("=")
-        menu = <<-MENU.strip_heredoc
-
-          #{header}
-
-            [f:green]= Room ##{room.id} - [f:white:b]#{room.name}
-
-          #{exit_info}
-
-            [f:green]help - [reset]Show help with linking exits.
-            [f:green]back - [reset]Return to the main editor
-
-          [f:white:b]#{footer}[f:green]
-
-          Enter Option >>
-        MENU
+        menu = Helpers::View.render("responder.room_builder.exit_menu", {room: room, exit_info: exit_info.join("\n")})
         send_no_prompt_or_newline(menu)
       end
 
       def send_edit_exit_help
-        header = Helpers::Text.header_with_title("[f:green]Edit Exits Help")
-        footer = Helpers::Text.full_line("=")
-        help = <<-HELP.strip_heredoc
-
-          #{header}
-          [f:green]
-            For all commands add "here" to the end to make them only operate on the
-              room you are editing. By default all commands that add exits will add the
-              same to the room you link it to.
-          [f:green]
-            Point a direction to a specific room by specifying the exit followed by the
-              room number.
-          [f:white:b]
-              north 10
-              south #33
-              east 22 here
-          [f:green]
-            Clear the room that an exit points to (remove an exit)
-          [f:white:b]
-              reset north
-              reset down
-              reset south here
-          [f:green]
-            Search for Room IDs by room name (displays up to 10 matches).
-          [f:white:b]
-              search House
-          [f:green]
-            Add a door to an exit that automatically closes after a given interval (leave
-              off the interval if you don't want it to automatically close).
-          [f:white:b]
-              close north after 10m
-              close south
-              close northeast here
-              close south after 3m here
-          [f:green]
-            Remove a door and lock from an exit.
-          [f:white:b]
-              open north
-              open west here
-          [f:green]
-            Add a lock to an exit that automatically locks after a given interval (leave
-              off the interval if you don't want it to automatically lock). Adding a
-              lock adds a door that never closes automatically.
-          [f:white:b]
-              lock north after 10m
-              lock south
-              lock up here
-              lock down after 3m here
-          [f:green]
-            Remove a lock from an exit.
-          [f:white:b]
-              unlock east
-              unlock southeast here
-
-          [f:white:b]#{footer}
-        HELP
-        send_no_prompt(help)
+        send_no_prompt(Helpers::View.render("responder.room_builder.exit_help"))
       end
 
       def send_edit_npc_menu
@@ -161,15 +67,10 @@ module Input
       end
 
       def edit_room(room)
-        # TODO: Check Permissions
-        if true
-          change_input_state(:room_builder)
-          self.internal_state = {room: room}
-          player.update_attribute(:room, room)
-          send_room_builder_menu
-        else
-          Input::Manager.unknown_input(conn)
-        end
+        change_input_state(:room_builder)
+        self.internal_state = {room: room}
+        player.update_attribute(:room, room)
+        send_room_builder_menu
       end
 
       # --- Responders -----------------------------------------------------------

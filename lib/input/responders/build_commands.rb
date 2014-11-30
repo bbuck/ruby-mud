@@ -1,7 +1,6 @@
 module Input
   module Responder
     class BuildCommands < Base
-
       # --- Templates Helpers ----------------------------------------------------
 
       def send_room_info(room = current_room)
@@ -26,11 +25,10 @@ module Input
         send(text)
       end
 
-
       # --- Helpers --------------------------------------------------------------
 
       def create_and_edit_room(room_name)
-        room = Room.create(name: room_name, description: DEFAULT_ROOM_DESCRIPTION, creator: player)
+        room = ::Room.create(name: room_name, description: DEFAULT_ROOM_DESCRIPTION, creator: player)
         create_responder(RoomBuilder).edit_room(room)
       end
 
@@ -39,7 +37,7 @@ module Input
       parse_input_with(/\A@room info #?(\d+)\z/) do |room_id|
         if player.can_build?
           begin
-            room = Room.find(room_id)
+            room = ::Room.find(room_id)
             send_room_info(room)
           rescue ActiveRecord::RecordNotFound => e
             send("[f:yellow:b]There is no room with the id ##{room_id}")
@@ -52,6 +50,23 @@ module Input
       parse_input_with(/\A@room info\z/) do
         if player.can_build?
           send_room_info
+        else
+          send_not_authorized
+        end
+      end
+
+      parse_input_with(/\A@room search (.*?)\z/) do |query|
+        if player.can_build?
+          rooms = ::Room.name_like(query).limit(10)
+          if rooms.count > 0
+            lines = rooms.map do |room|
+              "[f:green]##{room.id} - [f:white:b]#{room.name}"
+            end
+            str = "\n" + lines.join("\n") + "\n"
+            send_no_prompt(str)
+          else
+            send_no_prompt("[f:yellow:b]No rooms were found matching \"#{query}\"")
+          end
         else
           send_not_authorized
         end
@@ -76,7 +91,7 @@ module Input
       parse_input_with(/\A@edit room #?(\d+)\z/) do |room_id|
         if player.can_build?
           begin
-            room = Room.find(room_id)
+            room = ::Room.find(room_id)
             create_responder(RoomBuilder).edit_room(room)
           rescue ActiveRecord::RecordNotFound => e
             send("[f:yellow:b]There is no room with the id ##{room_id}")

@@ -3,7 +3,7 @@ module Helpers
     def check_all_doors_and_locks
       Laeron.config.logger.debug("Starting a door/lock check.")
       now = Time.now
-      Room.all.find_each(batch_size: 500) do |room|
+      ::Room.all.find_each(batch_size: 500) do |room|
         room.exits.each do |name, details|
           next unless details[:door].present?
           # Check lock first, it closes the door as well
