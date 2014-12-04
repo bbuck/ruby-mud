@@ -6,14 +6,14 @@ module Helpers
         view = if !view_cache[sym]
           path = view_path(view_name)
           if File.exists?(path)
-            view_cache[sym] = File.read(path)
+            view_cache[sym] = ERB.new(File.read(path))
           else
             nil
           end
         else
           view_cache[sym]
         end
-        view.erb(data) unless view.nil?
+        view.result(Laeron::String::ERBContext.new(data).get_binding) unless view.nil?
       end
 
       private

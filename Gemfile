@@ -18,6 +18,9 @@ gem "bcrypt", "~> 3.1.9"
 # Scripting Engine
 gem "eleetscript", "~> 0.0.20a"
 
+# General tools
+gem "memoist", "~> 0.11.0"
+
 group :development do
   gem "pry"
 end

@@ -1,5 +1,5 @@
 
-<%= Helpers::Text.header_with_title("[f:green]Edit Exits") %>
+<%= Helpers::Text.header_with_title("Edit Exits", title_color: "[f:green]", line_color: "[f:white:b]") %>
 
   [f:green]= Room #<%= room.id %> - [f:white:b]<%= room.name %>
 
@@ -8,6 +8,6 @@
   [f:green]help - [reset]Show help with linking exits.
   [f:green]back - [reset]Return to the main editor
 
-[f:white:b]<%= Helpers::Text.full_line("=") %>[f:green]
+[f:white:b]<%= Helpers::Text.full_line("=", line_color: "[f:white:b]") %>[f:green]
 
 Enter Option >>

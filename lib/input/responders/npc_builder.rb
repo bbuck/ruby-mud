@@ -4,27 +4,7 @@ module Input
       # --- Template Helpers -----------------------------------------------------
 
       def send_npc_builder_menu
-        menu = <<-MENU.strip_heredoc
-
-
-          [f:white:b]+-----------------------------------------------------------------------------+
-          |   [f:green]NPC Builder (v 1.0 by Brandon Buck)[f:white:b]                                       |
-          +-----------------------------------------------------------------------------+
-
-          [f:green]= Room ##{editing_npc.id} - [f:cyan:b]#{editing_npc.name}
-
-          [f:white:b][1][f:green] Edit NPC Name
-          [f:white:b][2][f:green] Edit NPC Description
-          [f:white:b][3][f:green] Edit Script
-          [f:white:b][4][f:green] Delete NPC
-
-          [f:white:b][5][f:green] Exit Editor
-          [f:white:b]
-          +-----------------------------------------------------------------------------+
-
-          [f:green]Enter Option >>
-        MENU
-        send_no_prompt(menu)
+        send_no_prompt(Helpers::View.render("responder.npc_builder.main_menu"))
       end
 
       # --- Helpers --------------------------------------------------------------

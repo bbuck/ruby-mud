@@ -11,17 +11,17 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 1417153645) do
+ActiveRecord::Schema.define(version: 1417655761) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
   create_table "factions", force: true do |t|
     t.string  "name"
-    t.integer "hostility"
-    t.integer "friendly_tier"
-    t.integer "trusted_tier"
-    t.integer "exalted_tier"
+    t.integer "hostility",     default: 3
+    t.integer "friendly_tier", default: 200
+    t.integer "trusted_tier",  default: 800
+    t.integer "exalted_tier",  default: 3000
   end
 
   create_table "game_settings", force: true do |t|

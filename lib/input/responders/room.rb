@@ -44,8 +44,12 @@ module Input
         direction = expand_direction(direction)
         if Helpers::Exit.valid?(direction)
           if current_room.has_exit?(direction)
-            new_room = current_room.send(direction)
-            send_room_description(new_room)
+            if current_room.exit_open?(direction)
+              new_room = current_room.send(direction)
+              send_room_description(new_room)
+            else
+              send("[f:yellow:b]You can't see through doors!")
+            end
           else
             send("[f:yellow:b]There is no exit in that direction!")
           end

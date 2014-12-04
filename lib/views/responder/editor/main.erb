@@ -1,0 +1,10 @@
+
+<%= Helpers::Text.header_with_title("Edit #{property.to_s.capitalize}", title_color: "[f:green]", line_color: "[f:white:b]") %>
+
+<%= display_lines %>
+[reset][f:green]
+  | [f:white:b][c]  [f:green]Clear Buffer     | [f:white:b][.#] [f:green]Edit Line      | [f:white:b][d#] [f:green]Delete Line    |
+  | [f:white:b][i#] [f:green]Insert in Buffer | [f:white:b][.]  [f:green]Free Edit      | [f:white:b][.q] [f:green]Quit Free Edit |
+  | [f:white:b][w]  [f:green]Save Changes     | [f:white:b][q]  [f:green]Quit Editor    | [f:white:b][h]  [f:green]Help           |
+
+Enter option >>

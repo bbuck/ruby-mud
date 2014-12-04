@@ -55,21 +55,20 @@ module Net
       opts = default_write_options.merge(opts)
       text = text.colorize if opts[:colorize]
       text = clean_text(text)
-      text = text.line_split unless opts[:raw]
-      if text.is_a?(Array)
+      if opts[:raw]
+        send_data(text)
+      else
+        text = text.line_split
         last_line = text.pop
         last_line += "\n" if opts[:newline]
         text.each do |line|
           send_data(line)
+          send_data("\n")
         end
         send_data(last_line)
-      else
-        text += "\n" if opts[:newline]
-        send_data(text.colorize)
       end
       if opts[:prompt]
-        prompt = "[f:green]PROMPT >>"
-        send_data("\n#{prompt}\n\n".colorize)
+        send_data(player.display_prompt.colorize)
       end
     end
 

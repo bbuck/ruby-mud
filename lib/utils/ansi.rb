@@ -1,15 +1,4 @@
 class ANSI
-  COLORS = [
-    :black,
-    :red,
-    :green,
-    :yellow,
-    :blue,
-    :magenta,
-    :cyan,
-    :white
-  ]
-
   ESCAPE = "\e"
 
   FOREGROUND = "3"
@@ -19,7 +8,7 @@ class ANSI
   RESET = "#{ESCAPE}[0m"
 
   class << self
-    COLORS.each_with_index do |color, index|
+    Laeron::COLORS.each_with_index do |color, index|
       define_method color do |bright = false|
         color(FOREGROUND, index, bright)
       end

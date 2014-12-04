@@ -73,64 +73,21 @@ module Input
       end
 
       def send_edit_menu
-        if buffer
-          buffer
-        else
+        unless buffer
           prop = editing_object.send(editing_property)
           prop ||= ""
           self.buffer = prop.lines
         end
         padding = buffer.length.to_s.length
-        display_lines = []
-        buffer.each_with_index do |line, idx|
-          display_lines << "          [reset]#{idx.next.to_s.rjust(padding)}) #{highlight(escape(line))}"
+        display_lines = buffer.each_with_index.map do |line, idx|
+          "[reset]#{idx.next.to_s.rjust(padding)}) #{highlight(escape(line))}"
         end
-        display_lines = display_lines.join("")
-        header = "==== Edit #{editing_property.to_s.capitalize} "
-        header += ("=" * (79 - header.length))
-        text = <<-TEXT.strip_heredoc
-
-          [f:white:b]#{header}
-          [reset]
-          #{display_lines}
-          [reset][f:green]
-            | [f:white:b][c]  [f:green]Clear Buffer     | [f:white:b][.#] [f:green]Edit Line      | [f:white:b][d#] [f:green]Delete Line    |
-            | [f:white:b][i#] [f:green]Insert in Buffer | [f:white:b][.]  [f:green]Free Edit      | [f:white:b][.q] [f:green]Quit Free Edit |
-            | [f:white:b][w]  [f:green]Save Changes     | [f:white:b][q]  [f:green]Quit Editor    | [f:white:b][h]  [f:green]Help           |
-
-          Enter option >>
-        TEXT
+        text = Helpers::View.render("responder.editor.main", {display_lines: display_lines.join, property: editing_property})
         send_no_prompt_or_newline(text)
       end
 
       def send_editor_help
-        text = <<-TEXT.strip_heredoc
-          [f:white:b]
-          ==== Editor Help ==============================================================
-
-          [f:green][[f:red].[f:green]]  Free Edit - [f:white]Begin editing at the end of the buffer. Every new line is
-                           appended.
-
-          [f:green][[f:red].q[f:green]] Quit Free Edit - [f:white]Exit Free Edit mode. Does nothing unless in Free Edit.
-
-          [f:green][[f:red].#[f:green]] Edit Line - [f:white]Edit the specified line in the buffer, replaces the current
-                           line with new input.
-
-          [f:green][[f:red]d#[f:green]] Delete Line - [f:white]Delete the specified line from the buffer.
-
-          [f:green][[f:red]i#[f:green]] Insert Line - [f:white]Add a line before the specified line.
-
-          [f:green][[f:red]w[f:green]]  Save Changes - [f:white]Save the changes made to the buffer.
-
-          [f:green][[f:red]e[f:green]]  Exit Editor - [f:white]Exit edit mode. This does not save changes so it's good to
-                             make sure that you save your changes before exiting.
-
-          [f:green][[f:red]h[f:green]]  Help - [f:white]Show this help page.
-          [f:white:b]
-          ===============================================================================
-
-        TEXT
-        send_no_prompt_or_newline(text)
+        send_no_prompt_or_newline(Helpers::View.render("responder.editor.help"))
       end
 
       # --- Helpers --------------------------------------------------------------

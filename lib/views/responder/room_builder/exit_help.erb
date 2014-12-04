@@ -1,5 +1,5 @@
 
-<%= Helpers::Text.header_with_title("[f:green]Edit Exits Help") %>
+<%= Helpers::Text.header_with_title("Edit Exits Help", title_color: "[f:green]", line_color: "[f:white:b]") %>
 
   [f:green]For all commands add "here" to the end to make them only operate on the
     room you are editing. By default all commands that add exits will add the
@@ -49,4 +49,4 @@
     unlock east
     unlock southeast here
 
-[f:white:b]<%= Helpers::Text.full_line("=") %>
+[f:white:b]<%= Helpers::Text.full_line("=", line_color: "[f:white:b]") %>

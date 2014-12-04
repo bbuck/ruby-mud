@@ -1,14 +1,18 @@
 require 'erb'
 
-class ERBContext
-  def initialize(hash)
-    hash.each_pair do |key, value|
-      singleton_class.send(:define_method, key) { value }
-    end
-  end
+module Laeron
+  module String
+    class ERBContext
+      def initialize(hash)
+        hash.each_pair do |key, value|
+          singleton_class.send(:define_method, key) { value }
+        end
+      end
 
-  def get_binding
-    binding
+      def get_binding
+        binding
+      end
+    end
   end
 end
 
@@ -42,53 +46,57 @@ class String
       end
     end
     ret = ret.gsub("__ESC__[", "[")
-    ret += ANSI::RESET if opts[:include_reset]
+    ret += ANSI::RESET if opts[:include_reset] && !ret.ends_with?(ANSI::RESET)
     ret
   end
 
   def line_split(size = Laeron.config.text.line_length)
-    buffer = []
-    i = 0
-    count = 0
-    str = ""
-    while i < self.length
-      if self[i] == ANSI::ESCAPE
-        new_i = self.index("m", i + 1)
-        str += self[i..new_i]
-        i = new_i
-      elsif self[i] == "\n"
-        buffer << str + "\n"
-        str = ""
-        count = 0
-      else
-        count = count + 1
-        str += self[i]
+    buffer = self.split("\n")
+    idx = 0
+    while idx < buffer.length
+      line = buffer[idx]
+      if line.purge_colors.length <= size
+        idx += 1
+        next
       end
-      if count >= size
-        if self[i + 1] =~ /[a-z.?!, ]/i
-          last_space = str.rindex(" ")
-          last_space ||= 0
-          new_str = str[(last_space + 1)..-1]
-          buffer << str[0...last_space] + "\n"
-          str = new_str
-          count = str.length
+      line_idx = 0
+      char_count = 0
+      temp_str = ""
+      new_portion = []
+      while line_idx < line.length
+        if line[line_idx] == ANSI::ESCAPE
+          new_idx = line.index("m", line_idx + 1)
+          temp_str += line[line_idx..new_idx]
+          line_idx = new_idx
         else
-          i += 1 if self[i + 1] == "\n"
-          buffer << str + "\n"
-          count = 0
-          str = ""
+          temp_str += line[line_idx]
+          char_count += 1
         end
+        if char_count >= size
+          if line[line_idx + 1] =~ /[a-z.?!, ]/i
+            last_space = temp_str.rindex(" ") || 0
+            new_str = temp_str[(last_space + 1)..-1]
+            new_portion << temp_str[0...last_space]
+            temp_str = new_str
+            char_count = temp_str.length
+          elsif line[line_idx + 1] == ANSI::ESCAPE
+            new_idx = line.index("m", line_idx + 1)
+            temp_str += line[line_idx..new_idx]
+            line_idx = new_idx
+            new_portion << temp_str
+            temp_str, char_count = "", 0
+          else
+            new_portion << temp_str
+            temp_str, char_count = "", 0
+          end
+        end
+        line_idx += 1
       end
-      i += 1
+      new_portion << temp_str
+      buffer[idx..idx] = new_portion.select { |l| l.length > 0 }
+      idx += new_portion.length
     end
-    buffer << str
-    if buffer.length == 0
-      ""
-    elsif buffer.length == 1
-      buffer.first
-    else
-      buffer
-    end
+    return buffer
   end
 
   def interval_value
@@ -96,26 +104,26 @@ class String
       amount = amount.to_i
       amount = case type
       when "y"
-        amount.years
+        amount.years.to_i
       when "M"
-        amount.months
+        amount.months.to_i
       when "w"
-        amount.weeks
+        amount.weeks.to_i
       when "d"
-        amount.days
+        amount.days.to_i
       when "h"
-        amount.hours
+        amount.hours.to_i
       when "m"
-        amount.minutes
+        amount.minutes.to_i
       when "s"
-        amount.seconds
+        amount.seconds.to_i
       end
       total + amount
     end
   end
 
   def erb(assigns = {})
-    ERB.new(self).result(ERBContext.new(assigns).get_binding)
+    ERB.new(self).result(Laeron::String::ERBContext.new(assigns).get_binding)
   end
 
   private

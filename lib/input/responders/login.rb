@@ -4,56 +4,6 @@ module Input
       VALID_USERNAME_RX = /\A[a-z]{2}[a-z'-]{0,17}[a-z]\z/i
       INVALID_NAME_SEQUENCE_RX = /'-|''|-'/
 
-      USERNAME_REQUIREMENTS = <<-REQS.strip_heredoc
-
-
-        Valid character names in Laeron must fit the following criteria:[f:green]
-
-          1. The name must begin with at least [f:white:b]two[reset][f:green] alphabetic characters ([f:white:b]A through Z[reset][f:green]).
-
-          2. The name can contain any alphabetic character or an apostrophe ([f:white:b]'[reset][f:green]) or a
-             hyphen (-[reset][f:green]).
-
-             a. You can have up to [f:white:b]two[reset][f:green] apostrophes ([f:white:b]'[reset][f:green]) in your name.
-             b. You can have [f:white:b]one[reset][f:green] hyphen ([f:white:b]-[reset][f:green]) in your name.
-             c. Apostrophes and Hyphens [f:red]cannot[f:green] touch one another.
-
-          3. The name must end with an alphabetic character.
-
-          4. The name must be at least [f:white:b]3[reset][f:green] characters and no more than [f:white:b]20[reset][f:green] characters
-             long.[reset]
-
-        Please select a new name that fits within these rules:
-      REQS
-
-      PASSWORD_REQUIREMENTS = <<-REQS.strip_heredoc
-
-
-        [f:green]Passwords must be at least 8 characters long and no more than 50 characters
-        long.
-
-        Passwords can contain any special characters you choose. Choose something
-        you could easily remember.
-
-        Perhaps choose a passphrase like: [f:white:b]correct horse battery staple [f:red:b](DO NOT USE)
-      REQS
-
-      USERNAME_RULES = <<-RULES.strip_heredoc
-
-
-        Learon is a fantasy themed Roleplaying game, therefore there are a few rules
-        that your Character name must conform to.
-        [f:green]
-          1. We do not accept Modern names such as Brandon, John, Jennifer, or Amber.
-
-          2. Names that are part of other stories such as those out of books, games, or
-             movies are not allowed.
-
-          3. Names of Mythological characters or Gods are not allowed.[reset]
-
-        Try to choose a name that is unique for your character and unique to the world.
-      RULES
-
       # --- Helpers --------------------------------------------------------------
 
       def valid_username?(username)
@@ -73,11 +23,12 @@ module Input
       end
 
       def send_enter_password_text(username)
-        send_no_prompt_or_newline("\nPlease enter a password for \"[f:cyan:b]#{username}[reset]\":\n#{ANSI::HIDDEN}")
+        send_no_prompt_or_newline("\n[f:yellow:b]Please enter a password for \"[f:cyan:b]#{username}[f:yellow:b]\":\n")
+        send(Telnet::IAC_DONT_ECHO, raw: true)
       end
 
       def send_initial_greeting
-        send_no_prompt("Welcome to the Laeron, please enter your character's name or type \"new\"")
+        send_no_prompt("Welcome to Laeron, please enter your character's name or type \"[f:white:b]new[reset]\"")
       end
 
       def connect_player(new_player)
@@ -101,7 +52,7 @@ module Input
               send_enter_password_text(internal_state[:username])
             end
           else
-            send_no_prompt_or_newline(USERNAME_REQUIREMENTS)
+            send_no_prompt_or_newline(Helpers::View.render("responder.login.username_requirements"))
           end
         end
       end
@@ -126,7 +77,7 @@ module Input
             internal_state[:password] = password
           else
             send_no_prompt("\n[f:red]That password is not valid.")
-            send_no_prompt(PASSWORD_REQUIREMENTS)
+            send_no_prompt(Helpers::View.render("responder.login.password_requirements"))
           end
         end
       end
@@ -169,7 +120,7 @@ module Input
       end
 
       parse_input_with(/\Anew\z/) do
-        send_no_prompt(USERNAME_RULES)
+        send_no_prompt(Helpers::View.render("responder.login.username_rules"))
         send_no_prompt("[f:white:b]Please enter a name for your character that complies with the rules above:")
         self.internal_state = {mode: :create_name}
       end
@@ -177,9 +128,14 @@ module Input
       parse_input_with(/(.+)/) do |username|
         players = ::Player.with_username(username)
         if players.count == 0
-          send_no_prompt(USERNAME_RULES)
-          send_no_prompt("Did you enter the name \"[f:white:b]#{username}[reset]\" correctly and does this name comply with the rules above [f:green:b](y/n)[reset]?")
-          self.internal_state = {mode: :confirm_name, username: username.capitalize}
+          if valid_username?(username)
+            send_no_prompt(Helpers::View.render("responder.login.username_rules"))
+            send_no_prompt("Did you enter the name \"[f:white:b]#{username}[reset]\" correctly and does this name comply with the rules above [f:green:b](y/n)[reset]?")
+            self.internal_state = {mode: :confirm_name, username: username.capitalize}
+          else
+            send_no_prompt("[f:yellow:b]The name \"[f:white:b]#{username.capitalize}[f:yellow:b]\" is not valid, please review the username requirements.")
+            send_no_prompt_or_newline(Helpers::View.render("responder.login.username_requirements"))
+          end
         else
           self.internal_state = {mode: :enter_password, player: players.first}
           send_no_prompt_or_newline("\nEnter the password for \"[f:white:b]#{username.capitalize}[reset]\"\n#{ANSI::HIDDEN}")

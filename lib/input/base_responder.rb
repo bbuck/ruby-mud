@@ -4,6 +4,24 @@ module Input
       class << self
         @allow_blank_input = false
 
+        def before_responder(*names)
+          @before_responders ||= []
+          @before_responders += names
+        end
+
+        def after_responder(*names)
+          @after_responders ||= []
+          @after_responders += names
+        end
+
+        def before_responders
+          (@before_responders ||= [])
+        end
+
+        def after_responders
+          (@after_responders ||= [])
+        end
+
         def responders_for_mode(mode, &block)
           @current_mode = mode
           class_eval(&block)
@@ -48,8 +66,10 @@ module Input
         self.class.responders(current_mode).each do |(regex, block)|
           match_data = input.match(regex)
           if match_data
+            self.class.before_responders.each { |method| return true if __send__(method) == false }
             input_args = match_data[1..match_data.length]
             instance_exec(*input_args, &block)
+            self.class.after_responders.each { |method| __send__(method) }
             return true
           end
         end

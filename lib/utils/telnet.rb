@@ -1,0 +1,4 @@
+module Telnet
+  IAC_DO_ECHO = [0xff, 0xfb, 0x01].pack("ccc")
+  IAC_DONT_ECHO = [0xff, 0xfc, 0x01].pack("ccc")
+end

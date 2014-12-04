@@ -29,6 +29,15 @@ task :create_migration, [:name] do |t, args|
   end
 end
 
+desc "Create a responder with the given name and input mode."
+task :create_responder, [:name, :mode] do |t, args|
+  if args[:name].nil? || args[:mode].nil?
+    puts "A name and mode must be given."
+  else
+    exec("scripts/laeron responder #{args[:name]} #{args[:mode]}")
+  end
+end
+
 # Required for active record migrations
 task :environment do
   # empty on purpose

@@ -8,7 +8,7 @@ module Input
       def send_room_builder_menu(room = nil)
         room = editing_room if room.nil?
         room.reload
-        divider = Helpers::Text.full_line("-", "+")
+        divider = Helpers::Text.full_line("-", line_cap: "+", line_color: "[f:white:b]")
         text = Helpers::View.render("responder.room_builder.main_menu", {room: room, divider: divider})
         send_no_prompt_or_newline(text)
       end
@@ -50,8 +50,8 @@ module Input
       end
 
       def send_edit_npc_menu
-        header = Helpers::Text.header_with_title("[f:green]Edit NPCs")
-        footer = Helpers::Text.full_line("=")
+        header = Helpers::Text.header_with_title("Edit NPCs", title_color: "[f:green]", line_color: "[f:white:b]")
+        footer = Helpers::Text.full_line("=", line_color: "[f:white:b]")
         menu = <<-MENU.strip_heredoc
           #{header}
 

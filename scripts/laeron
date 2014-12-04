@@ -3,6 +3,7 @@
 require 'rubygems'
 require 'bundler/setup'
 require 'active_support/core_ext/string/inflections'
+require "./main"
 
 class Command
   attr_accessor :usage, :description
@@ -98,6 +99,28 @@ class Program
   end
 end
 
+MIGRATION_ERB = ERB.new <<-MIGRATION_ERB
+class <%= name.classify %> < ActiveRecord::Migration
+  def change
+  end
+end
+MIGRATION_ERB
+
+RESPONDER_ERB = ERB.new <<-RESPONDER_ERB
+module Input
+  module Responder
+    class <%= name.classify %> < Base
+      # --- Template Helpers -------------------------------------------------
+      # --- Public Helpers ---------------------------------------------------
+      # --- Responders -------------------------------------------------------
+      # --- Private Helpers --------------------------------------------------
+    end
+  end
+end
+
+Input::Manager.register_responder(:<%= mode %>, Input::Responder::<%= name.classify %>)
+RESPONDER_ERB
+
 program = Program.new
 
 program.name = "LaeronMUD Server"
@@ -109,7 +132,6 @@ program.command :run do |c|
   c.usage = "laeron run"
   c.description = "Run the LaeronMUD server and allow players to connect and play."
   c.action do
-    require './main'
     Laeron.start_server
   end
 end
@@ -118,7 +140,6 @@ program.command :console do |c|
   c.usage = "laeron console"
   c.description = "Run a PRY console session with the LaeronMUD environment loaded."
   c.action do
-    require "./main"
     Pry.start
   end
 end
@@ -128,11 +149,19 @@ program.command :migrate do |c|
   c.description = "Create an empty migration file in the db/migrate folder with the given name."
   c.action do |args|
     name = args[0]
-    File.open "db/migrate/#{Time.now.to_i}_#{name}.rb", "w:utf-8" do |f|
-      f.write "class #{name.classify} < ActiveRecord::Migration\n"
-      f.write "  def change\n"
-      f.write "  end\n"
-      f.write "end\n"
+    File.open("db/migrate/#{Time.now.to_i}_#{name}.rb", "w:utf-8") do |f|
+      f.write(MIGRATION_ERB.result(binding))
+    end
+  end
+end
+
+program.command :responder do |c|
+  c.usage = "laeron responder <name_underscored> <mode>"
+  c.description = "Create an empty input responder to start developing with"
+  c.action do |args|
+    name, mode = args[0], args[1]
+    File.open(Laeron.root.join("lib", "input", "responders", "#{name}.rb").to_s, "w:utf-8") do |f|
+      f.write(RESPONDER_ERB.result(binding))
     end
   end
 end

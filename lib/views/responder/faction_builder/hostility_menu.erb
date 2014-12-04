@@ -1,0 +1,10 @@
+
+<%= Helpers::Text.header_with_title("Choose Hostility", title_color: "[f:green]", line_color: "[f:white:b]") %>
+
+  [f:white:b][1][f:green] Low Reputation <%= (faction.hostility.low_reputation? ? "[f:white:b]*[reset]" : "") %>
+  [f:white:b][2][f:green] Always <%= (faction.hostility.always? ? "[f:white:b]*[reset]" : "") %>
+  [f:white:b][3][f:green] Never <%= (faction.hostility.never? ? "[f:white:b]*[reset]" : "") %>
+
+<%= Helpers::Text.full_line("-", color: "[f:white:b]") %>
+
+Enter Option >>

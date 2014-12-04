@@ -1,4 +1,15 @@
 module Laeron
+  COLORS = [
+    :black,
+    :red,
+    :green,
+    :yellow,
+    :blue,
+    :magenta,
+    :cyan,
+    :white
+  ]
+
   @config = Configuration.new
 
   class << self

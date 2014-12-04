@@ -78,11 +78,15 @@ class Player < ActiveRecord::Base
     name_color + username
   end
 
-  def display_description
-    text = <<-DESC
+  def display_prompt
+    "\n[f:green]PROMPT >>\n\n"
+  end
 
-[f:green]You look at #{display_name}.
-[f:green]#{description}
+  def display_description
+    text = <<-DESC.strip_heredoc
+
+      [f:green]You look at #{display_name}.
+      [f:green]#{description}
     DESC
     text
   end
