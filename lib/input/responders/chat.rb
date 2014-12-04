@@ -21,7 +21,7 @@ module Input
       parse_input_with(/\Ayell (.+)\z/) do |message|
         message = message.purge_colors
         yell = Game::ChannelFormatter.format(:yell, {"%N" => player.username, "%M" => message})
-        Yell.new(yell, current_room)
+        Game::Yell.new(yell, current_room)
       end
 
       parse_input_with(/\Axme (.+)\z/, /\Axpost (.+)\z/) do |message|

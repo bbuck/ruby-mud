@@ -1,5 +1,45 @@
 class Room < ActiveRecord::Base
+  DEFAULT_SCRIPT = <<-SCRIPT.strip_heredoc
+    # @room {Room} the room this script is attached to
+
+    # Called when the player signs in and "appears" in the room they were last
+    # in.
+    # param player {Player} the player who appeared (just signed in)
+    player_appears do |player|
+      # Do something when the player appears
+    end
+
+    # Called when the player enters the room from another room vai the given
+    # direction.
+    # param player {Player} the player who entered the room
+    # param direction {Symbol} the direction the player entered from
+    player_entered do |player, direction|
+      # do something when the player enters the room
+    end
+
+    # Called when the player leaves the room and is given the direction they
+    # left by
+    # param player {Player} the player who left
+    # param direction {Symbol} the direction the player left
+    player_left do |player, direction|
+      # do something when the player leaves the room
+    end
+
+    # Called when the player types "look X" where X is not an object, player or
+    # NPC in the room
+    # param player {Player} the player who did the looking
+    # param object {String} the "X" from "look X"
+    # return {String} the return value should be a string if the text is
+    #        something the player should see, nothing if the player doesn't
+    #        see anything
+    player_looks_at do |player, object|
+      # test object and return appropraite string or nothing if the player
+      # doesn't see anything
+    end
+  SCRIPT
+
   include Scriptable
+  extend Memoist
 
   Helpers::Exit.each do |exit_name|
     define_method exit_name do
@@ -19,6 +59,8 @@ class Room < ActiveRecord::Base
   belongs_to :creator, class_name: "Player"
 
   scope :name_like, ->(name) { where("name ILIKE ?", "%#{name}%") }
+
+  before_save :set_default_script
 
   script_var_name :room
 
@@ -263,7 +305,7 @@ class Room < ActiveRecord::Base
 
   def player_transmit(txt, player, message, opts = {})
     transmit(txt, opts)
-    npcs_in_room.each { |npc| npc.player_says(player, message)}
+    npcs_in_room.each { |npc| npc.player_said(player, message) }
   end
 
   def transmit(message, options = {})
@@ -299,36 +341,46 @@ class Room < ActiveRecord::Base
   def display_text(player)
     reload
     divider = Helpers::Text.full_line("-")
-    display = <<-ROOM
-\n#{display_name}[reset]
-#{divider}
-[f:green]#{description}[reset]
-#{divider}
-#{exit_string}
+    display = <<-ROOM.strip_heredoc
+
+      #{display_name}[reset]
+      #{divider}
+      [f:green]#{description}
+      [reset]#{divider}
+      #{exit_string}
     ROOM
-    display += "\n#{npc_string}" if npcs_in_room.count > 0
-    display += "\n#{player_string(player)}" if players_in_room.where("id <> ?", player.id).online.count > 0
-    display
+    display + "#{contents_string(player)}"
   end
 
   private
 
   # --- Text Helpers ---------------------------------------------------------
 
-  def npc_string
-    npc_text = []
-    npcs_in_room.each do |npc|
-      npc_text << "[f:green]#{npc.display_name} [f:green]is standing here."
+  def contents_string(viewing_player)
+    contents = []
+    contents += npc_string_data if npcs_in_room.count > 0
+    contents += player_string_data(viewing_player) if players_in_room.where.not(id: viewing_player.id).online.count > 0
+    if contents.length > 0
+      "\n" + contents.join("\n") + "\n"
+    else
+      ""
     end
-    npc_text.join("\n")
   end
 
-  def player_string(viewing_player)
+  def npc_string_data(padding = "")
+    npcs = []
+    npcs_in_room.each do |npc|
+      npcs << "#{padding}[f:green]#{npc.display_name} [f:green]is standing here."
+    end
+    npcs
+  end
+
+  def player_string_data(viewing_player, padding = "")
     players = []
     players_in_room.where("id <> ?", viewing_player.id).online.each do |player|
-      players << "[f:green]#{player.display_name} [f:green]is standing here."
+      players << "#{padding}[f:green]#{player.display_name} [f:green]is standing here."
     end
-    players.join("\n") + "\n"
+    players
   end
 
   def exit_string
@@ -350,9 +402,15 @@ class Room < ActiveRecord::Base
   end
 
   def eleetscript_allow_methods
-    @_eleetscript_allow_methods ||= [
-      :display_name,
-      :transmit
-    ]
+    [:display_name, :transmit]
+  end
+  memoize :eleetscript_allow_methods
+
+  private
+
+  def set_default_script
+    if script.nil? || script.strip.length == 0
+      self.script = DEFAULT_SCRIPT
+    end
   end
 end

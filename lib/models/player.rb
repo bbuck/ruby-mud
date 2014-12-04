@@ -1,5 +1,6 @@
 class Player < ActiveRecord::Base
   include BCrypt
+  extend Memoist
 
   BUILD_PERMISSION = 1
   CONTROL_PERMISSION = 2
@@ -206,9 +207,7 @@ class Player < ActiveRecord::Base
   # --- ES Locks -------------------------------------------------------------
 
   def eleetscript_allow_methods
-    @_eleetscript_allow_methods ||= [
-      :display_name,
-      :send_text
-    ]
+    [:display_name, :send_text]
   end
+  memoize :eleetscript_allow_methods
 end

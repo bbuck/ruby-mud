@@ -18,8 +18,8 @@ module Input
         if current_room.has_exit?(direction)
           if current_room.exit_open?(direction)
             cur_room, new_room = current_room, current_room.send(direction)
-            new_room.player_enters(player, direction)
             player.update_attribute(:room, new_room)
+            new_room.player_enters(player, direction)
             cur_room.player_left(player, direction)
           else
             case current_room.exit_status(direction)

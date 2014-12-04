@@ -10,7 +10,7 @@ module Game
       end
 
       def format(name, data)
-        format = formats[name]
+        format = formats[name].dup
         if format.nil?
           ""
         else
