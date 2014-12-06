@@ -13,7 +13,9 @@ module Helpers
         else
           view_cache[sym]
         end
-        view.result(Laeron::String::ERBContext.new(data).get_binding) unless view.nil?
+        context = Laeron::String::ERBContext.new(data)
+        context.extend_methods_from(Helpers::Text)
+        view.result(context.get_binding) unless view.nil?
       end
 
       private

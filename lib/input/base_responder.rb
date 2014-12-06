@@ -78,6 +78,17 @@ module Input
 
       protected
 
+      def render(*args)
+        meth_name = args.last
+        if meth_name.kind_of?(Hash)
+          meth_name = :send_no_prompt
+        else
+          args.pop
+        end
+        view = Helpers::View.render(*args)
+        __send__(meth_name, view)
+      end
+
       def input_state
         connection.input_state
       end
@@ -88,6 +99,30 @@ module Input
 
       def clear_mode
         internal_state.delete(:mode)
+      end
+
+      def store_original_state(callback = nil)
+        self.original_state = {
+          input_state: input_state,
+          internal_state: internal_state,
+        }
+        original_state[:callback] = callback if callback
+      end
+
+      def restore_original_state
+        return unless original_state.present?
+        change_input_state(original_state[:input_state])
+        self.internal_state = original_state[:internal_state]
+        original_state[:callback].call if original_state[:callback]
+        self.original_state = nil
+      end
+
+      def original_state
+        connection.original_state
+      end
+
+      def original_state=(value)
+        connection.original_state = value
       end
 
       def logger

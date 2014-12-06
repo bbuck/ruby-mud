@@ -107,15 +107,11 @@ end
 MIGRATION_ERB
 
 RESPONDER_ERB = ERB.new <<-RESPONDER_ERB
-module Input
-  module Responder
-    class <%= name.classify %> < Base
-      # --- Template Helpers -------------------------------------------------
-      # --- Public Helpers ---------------------------------------------------
-      # --- Responders -------------------------------------------------------
-      # --- Private Helpers --------------------------------------------------
-    end
-  end
+class Input::Responder::<%= name.classify %> < Input::Responder::Base
+  # --- Template Helpers -------------------------------------------------
+  # --- Public Helpers ---------------------------------------------------
+  # --- Responders -------------------------------------------------------
+  # --- Private Helpers --------------------------------------------------
 end
 
 Input::Manager.register_responder(:<%= mode %>, Input::Responder::<%= name.classify %>)

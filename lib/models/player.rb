@@ -16,24 +16,24 @@ class Player < ActiveRecord::Base
   has_and_belongs_to_many :reputations
 
   scope :with_username, ->(username) { where("lower(username) = ?", username.downcase) }
-  scope :online, -> { where(id: connections.keys) }
+  scope :online, -> { where(id: tcp_connections.keys) }
 
   class << self
     # --- Connection Helpers -------------------------------------------------
 
-    def each_connection(&block)
-      connections.each do |id, conns|
+    def each_tcp_connection(&block)
+      tcp_connections.each do |id, conns|
         conns.each(&block)
       end
     end
 
-    def connections
-      @connections ||= {}
+    def tcp_connections
+      @tcp_connections ||= {}
     end
 
     def disconnect(player, connection)
-      connections[player.id].delete(connection)
-      connections.delete(player.id) if connections[player.id].count == 0
+      tcp_connections[player.id].delete(connection)
+      tcp_connections.delete(player.id) if tcp_connections[player.id].count == 0
       Laeron.config.logger.info("Player #{player.username} disconnected.")
     end
 
@@ -47,18 +47,18 @@ class Player < ActiveRecord::Base
       ip_addr = connection.ip_addr
       tracking = player.tracking.find_or_create_by(ip_address: ip_addr)
       tracking.update_attributes(connection_count: (tracking.connection_count || 0) + 1)
-      if connections[player_id] && connections[player_id].length > 0
-        connections[player_id].each do |old_conn|
+      if tcp_connections[player_id] && tcp_connections[player_id].length > 0
+        tcp_connections[player_id].each do |old_conn|
           old_conn.send_text("You are being disconnected because your character was accessed by another client.")
           old_conn.quit
         end
-        connections[player_id].clear
+        tcp_connections[player_id].clear
       end
-      (connections[player_id] ||= []) << connection
+      (tcp_connections[player_id] ||= []) << connection
     end
 
     def online?(player)
-      connections[player.id] && connections[player.id].length > 0
+      tcp_connections[player.id] && tcp_connections[player.id].length > 0
     end
   end
 
@@ -84,34 +84,41 @@ class Player < ActiveRecord::Base
   end
 
   def display_description
-    text = <<-DESC.strip_heredoc
-
-      [f:green]You look at #{display_name}.
-      [f:green]#{description}
-    DESC
-    text
+    unless description.blank?
+      "[f:green]#{description}"
+    else
+      "#{display_name} [f:green]stands before you."
+    end
   end
 
   # --- Connection Helpers ----------------------------------------------------
 
   def disconnect
-    Player.disconnect(self, connection)
+    Player.disconnect(self, tcp_connection)
   end
 
   def online?
-    Player.connections[id] && Player.connections[id].length > 0
+    Player.tcp_connections[id] && Player.tcp_connections[id].length > 0
   end
 
-  def connection
+  def tcp_connection
     if online?
-      Player.connections[id].first
+      Player.tcp_connections[id].first
     else
       nil
     end
   end
 
+  def tcp_connections
+    if online?
+      Player.tcp_connections[id]
+    else
+      []
+    end
+  end
+
   def send_text(text, opts = {})
-    if conn = connection
+    tcp_connections.each do |conn|
       conn.send_text(text, opts)
     end
   end

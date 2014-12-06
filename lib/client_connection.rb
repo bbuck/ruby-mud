@@ -3,7 +3,7 @@ module Net
     class << self
       def timeout_inactive_players
         Laeron.config.logger.debug("Starting a player timeout check.")
-        Player.each_connection do |connection|
+        Player.each_tcp_connection do |connection|
           next if connection.player.can_administrate?
           if connection.has_timedout?
             connection.timeout
@@ -17,7 +17,7 @@ module Net
     end
 
     attr_reader :input_state
-    attr_accessor :player, :internal_state, :time_connected, :time_of_last_action
+    attr_accessor :player, :internal_state, :time_connected, :time_of_last_action, :original_state
 
     def initialize
       self.input_state = :login

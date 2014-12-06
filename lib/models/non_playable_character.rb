@@ -41,7 +41,8 @@ class NonPlayableCharacter < ActiveRecord::Base
   before_save :set_update_at_time
   before_save :set_default_script
 
-  scope :needs_update, -> { where("update_at < ?", Time.now) }
+  scope :needs_update, -> { where("update_at < ?", Time.now).where.not(room_id: nil) }
+  scope :name_like, ->(query) { where("name ILIKE ?", "%#{query}%") }
 
   script_var_name :me
 
@@ -51,6 +52,8 @@ class NonPlayableCharacter < ActiveRecord::Base
       NonPlayableCharacter.needs_update.find_each { |npc| npc.update }
     end
   end
+
+  # --- Helpers --------------------------------------------------------------
 
   # --- Script Helpers -------------------------------------------------------
 
@@ -80,6 +83,14 @@ class NonPlayableCharacter < ActiveRecord::Base
 
   def display_name
     "[f:cyan:b]#{name}"
+  end
+
+  def display_description
+    unless description.blank?
+      "[f:green]#{description}"
+    else
+      "#{display_name} [f:green]stands before you."
+    end
   end
 
   def say(msg)
@@ -125,7 +136,7 @@ class NonPlayableCharacter < ActiveRecord::Base
   private
 
   def set_default_script
-    if script.nil? || script.strip.length == 0
+    if script.blank?
       self.script = DEFAULT_SCRIPT
     end
   end

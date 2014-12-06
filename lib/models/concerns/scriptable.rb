@@ -5,6 +5,8 @@ module Scriptable
     attr_accessor :_engine
     class_attribute "_script_var_name"
     class_attribute "_engines"
+
+    after_save :reload_engine, if: :script_changed?
   end
 
   module ClassMethods
@@ -18,6 +20,7 @@ module Scriptable
   end
 
   def reload_engine
+    reload
     script_engine.reset
     script_engine.evaluate(self.script || "")
   end

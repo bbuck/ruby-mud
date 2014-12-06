@@ -4,6 +4,7 @@ module Input
       # --- Template Helpers -------------------------------------------------
 
       def send_faction_builder_menu
+        editing_faction.reload
         send_no_prompt(Helpers::View.render("responder.faction_builder.main_menu", faction: editing_faction))
       end
 

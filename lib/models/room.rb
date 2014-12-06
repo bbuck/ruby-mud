@@ -74,7 +74,7 @@ class Room < ActiveRecord::Base
   def player_enters(player, dir)
     from_dir = Helpers::Exit.proper(Helpers::Exit.inverse(dir))
     transmit("[f:green]#{player.display_name} [f:green]enters from #{from_dir}.")
-    player.connection.send_text(display_text(player), newline: false)
+    player.tcp_connection.send_text(display_text(player), newline: false)
     script_engine.call(:player_entered, player, Helpers::Exit.inverse(dir))
     npcs_in_room.each { |npc| npc.player_entered(player) }
   end
@@ -96,9 +96,13 @@ class Room < ActiveRecord::Base
 
   def player_looks_at(player, object)
     if object == "me" || object == "self"
-      player.display_description
+      Helpers::Text.string("[f:green]You look at yourself", player.display_description)
     elsif players_in_room.with_username(object).count > 0
-      players_in_room.with_username(object).first.display_description
+      other_player = players_in_room.with_username(object).first
+      Helpers::Text.string("[f:green]You look at #{other_player.display_name}", other_player.display_description)
+    elsif npcs_in_room.name_like(object).count > 0
+      npc = npcs_in_room.name_like(object).first
+      Helpers::Text.string("[f:green]You look at #{npc.display_name}", npc.display_description)
     else
       script_engine.call(:player_looks_at, player, object)
     end
@@ -326,8 +330,8 @@ class Room < ActiveRecord::Base
         end
       end
       next if exclude_player
-      if Player.connections[pid]
-        Player.connections[pid].each do |conn|
+      if Player.tcp_connections[pid]
+        Player.tcp_connections[pid].each do |conn|
           conn.send_text(message, prompt: false)
         end
       end
@@ -409,7 +413,7 @@ class Room < ActiveRecord::Base
   private
 
   def set_default_script
-    if script.nil? || script.strip.length == 0
+    if script.blank?
       self.script = DEFAULT_SCRIPT
     end
   end

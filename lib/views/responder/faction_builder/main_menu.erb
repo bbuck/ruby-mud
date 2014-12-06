@@ -1,16 +1,16 @@
 
-<%= Helpers::Text.header_with_title("Editing Faction", title_color: "[f:green]", line_color: "[f:white:b]") %>
+<%= header_with_title("Editing Faction", title_color: "[f:green]", line_color: "[f:white:b]") %>
 
   [f:green]= Faction #<%= faction.id %> - [f:white:b]<%= faction.name %>
 
-  [f:white:b][1][f:green] Edit Name[reset]
-  [f:white:b][2][f:green] Edit Friendly Reputaton Amount [f:white:b](<%= faction.friendly_tier %>)[reset]
-  [f:white:b][3][f:green] Edit Trusted Reputation Amount [f:white:b](<%= faction.trusted_tier %>)[reset]
-  [f:white:b][4][f:green] Edit Exalted Reputation Amount [f:white:b](<%= faction.exalted_tier %>)[reset]
-  [f:white:b][5][f:green] Edit Hostility [f:white:b](<%= faction.hostility.to_s.humanize.titleize %>)[reset]
+  [1][f:green] Edit Name
+  [f:white:b][2][f:green] Edit Friendly Reputaton Amount [f:white:b](<%= faction.friendly_tier %>)
+  [3][f:green] Edit Trusted Reputation Amount [f:white:b](<%= faction.trusted_tier %>)
+  [4][f:green] Edit Exalted Reputation Amount [f:white:b](<%= faction.exalted_tier %>)
+  [5][f:green] Edit Hostility [f:white:b](<%= faction.hostility.to_s.humanize.titleize %>)
 
-  [f:white:b][6][f:green] Quit Editor[reset]
+  [6][f:green] Quit Editor
 
-<%= Helpers::Text.full_line("-", color: "[f:white:b]") %>
+<%= full_line("-", color: "[f:white:b]") %>
 
 [f:green]Enter Option >>

@@ -8,8 +8,7 @@ module Input
       def send_room_builder_menu(room = nil)
         room = editing_room if room.nil?
         room.reload
-        divider = Helpers::Text.full_line("-", line_cap: "+", line_color: "[f:white:b]")
-        text = Helpers::View.render("responder.room_builder.main_menu", {room: room, divider: divider})
+        text = Helpers::View.render("responder.room_builder.main_menu", {room: room})
         send_no_prompt_or_newline(text)
       end
 
@@ -213,7 +212,7 @@ module Input
         end
       end
 
-      parse_input_with(/\A7\z/) do
+      parse_input_with(/\A6\z/) do
         change_input_state(:standard)
         send_room_description
       end

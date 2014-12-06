@@ -120,28 +120,16 @@ module Input
         internal_state[:options]
       end
 
-      def restore_original_state
-        restore_state = internal_state[:restore_state]
-        change_input_state(restore_state[:input_state])
-        self.internal_state = restore_state[:internal_state]
-        restore_state[:restore_cb].call
-      end
-
       def open_editor(object, property, opts = {}, &block)
         opts = default_open_editor_options.merge(opts)
-        new_state = {
+        store_original_state(block)
+        change_input_state(:editor)
+        self.internal_state = {
           object: object,
           property: property,
           options: opts,
-          unsaved_changes: false,
-          restore_state: {
-            input_state: input_state,
-            internal_state: internal_state,
-            restore_cb: block
-          }
+          unsaved_changes: false
         }
-        change_input_state(:editor)
-        self.internal_state = new_state
         send_edit_menu
       end
 

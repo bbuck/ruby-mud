@@ -67,6 +67,30 @@ module Input
 
       # --- NPC Handlers -----------------------------------------------------
 
+      parse_input_with(/\A@npc search (.+?)\z/) do |query|
+        npcs = ::NPC.name_like(query).limit(10)
+        if npcs.count > 0
+          npc_str = npcs.map { |n| "#[f:white:b]#{n.id}[reset] - #{n.display_name}[reset]" }
+        else
+          npc_str = ["[f:green]No NPCs found matching \"#{query}\" were found, you might need to create it!"]
+        end
+        render("responder.npc_builder.npc_list", npc_string: npc_str.join("\n"), query: query)
+      end
+
+      parse_input_with(/\A@edit npc #?(\d+)\z/) do |id|
+        begin
+          npc = ::NPC.find(id.to_i)
+          create_responder(NpcBuilder).edit_npc(npc)
+        rescue ActiveRecord::RecordNotFound => e
+          send_no_prompt("[f:yellow:b]The NPC with id \"#{id}\" does not exist!")
+        end
+      end
+
+      parse_input_with(/\A@npc create (.+?)\z/) do |name|
+        npc = ::NPC.create(name: name)
+        create_responder(NpcBuilder).edit_npc(npc)
+      end
+
       # --- Faction Handlers -------------------------------------------------
 
       parse_input_with(/\A@faction create (.+)\z/) do |name|
@@ -79,9 +103,9 @@ module Input
         if factions.count > 0
           faction_str = factions.map { |f| "##{f.id} - #{f.name}" }
         else
-          faction_str = ["[f:green]No factions matching \"#{query}\" were found, you should create it."]
+          faction_str = ["[f:green]No factions matching \"#{query}\" were found, you might need to create it."]
         end
-        send(Helpers::View.render("responder.build_commands.faction_list", faction_str: faction_str.join("\n"), query: query))
+        render("responder.build_commands.faction_list", faction_str: faction_str.join("\n"), query: query)
       end
 
       parse_input_with(/\A@edit faction #?(\d+)\z/) do |id|

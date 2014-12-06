@@ -1,14 +1,15 @@
 
-[f:white:b]
-<%= Helpers::Text.header_with_title("Quick Room Info", title_color: "[f:green]", line_color: "[f:white:b]") %>
 
-  [reset][f:green]Created At: [f:white:b]<%= room.created_at.localtime.strftime(Laeron::TimeFormats::LONG_WITH_TIME) %>
-  [reset][f:green]Created By: [f:white:b]<%= room.creator.username %>
+<%= header_with_title("Quick Room Info", title_color: "[f:green]", line_color: "[f:white:b]") %>
 
-  [reset][f:green]Room ID:    [f:white:b]#<%= room.id %>
-  [reset][f:green]Title:      [f:white:b]<%= room.name %>
-  [reset][f:green]Exits:      [f:white:b]<%= room.exit_array.join(", ") %>
-  [reset][f:green]Players:    [f:white:b]<%= room.players_in_room.online.count %>
+  [f:green]Created At: [f:white:b]<%= room.created_at.localtime.strftime(Laeron::TimeFormats::LONG_WITH_TIME) %>
+  [f:green]Created By: [f:white:b]<%= room.creator.username %>
 
-[f:white:b]<%= Helpers::Text.full_line("=", line_color: "[f:white:b]") %>
+  [f:green]Room ID:    [f:white:b]#<%= room.id %>
+  [f:green]Title:      [f:white:b]<%= room.name %>
+  [f:green]Exits:      [f:white:b]<%= room.exit_array.join(", ") %>
+  [f:green]Players:    [f:white:b]<%= room.players_in_room.online.count %>
+  [f:green]NPCs:       [f:white:b]<%= room.npcs_in_room.count %>
+
+<%= full_line("=", color: "[f:white:b]") %>
 

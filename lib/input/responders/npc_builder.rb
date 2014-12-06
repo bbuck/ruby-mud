@@ -4,7 +4,8 @@ module Input
       # --- Template Helpers -----------------------------------------------------
 
       def send_npc_builder_menu
-        send_no_prompt(Helpers::View.render("responder.npc_builder.main_menu"))
+        editing_npc.reload
+        send_no_prompt(Helpers::View.render("responder.npc_builder.main_menu", npc: editing_npc))
       end
 
       # --- Helpers --------------------------------------------------------------
@@ -13,10 +14,11 @@ module Input
         internal_state[:npc]
       end
 
-      def edit_npc(npc)
+      def edit_npc(npc, &block)
+        store_original_state(block) if block_given?
         change_input_state(:npc_builder)
         self.internal_state = {npc: npc}
-        player.update_attribute(:room, npc.room)
+        player.update_attribute(:room, npc.room) if npc.room
         send_npc_builder_menu
       end
 
@@ -47,7 +49,7 @@ module Input
         end
       end
 
-      parse_input_with(/\A5\z/) do
+      parse_input_with(/\A7\z/) do
         change_input_state(:standard)
         send_room_description
       end

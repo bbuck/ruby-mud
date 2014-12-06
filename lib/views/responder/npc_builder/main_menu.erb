@@ -1,18 +1,20 @@
 
 
-[f:white:b]<%= Helpers::Text.full_line("-", line_cap: "+", line_color: "[f:white:b]") %>
-|   [f:green]NPC Builder (v 1.0 by Brandon Buck)[f:white:b]                                       |
-<%= Helpers::Text.full_line("-", line_cap: "+", line_color: "[f:white:b]") %>
+<%= full_line("-", line_cap: "+", line_color: "[f:white:b]") %>
+|   NPC Builder (v 1.0 by Brandon Buck)                                        |
+<%= full_line("-", line_cap: "+", line_color: "[f:white:b]") %>
 
-[f:green]= NPC #<%= npc.id %> - [f:cyan:b]<%= npc.name %>
+  = NPC #<%= npc.id %> - <%= npc.name %>
 
-[f:white:b][1][f:green] Edit NPC Name (NYI)
-[f:white:b][2][f:green] Edit NPC Description (NYI)
-[f:white:b][3][f:green] Edit Script (NYI)
-[f:white:b][4][f:green] Delete NPC (NYI)
+  [1] Edit Name
+  [2] Edit Description
+  [3] Edit Script
+  [4] Edit Update Timer (<%= npc.update_timer.present? ? npc.respawn_timer : "none" %>) (NYI)
+  [5] Edit Respawn Timer (<%= npc.respawn_timer.present? ? npc.respawn_timer : "none" %>) (NYI)
+  [6] Set Room (<%= npc.room_id.present? ? npc.room.display_name : "nowhere" %>)
 
-[f:white:b][5][f:green] Exit Editor
+  [7] Exit Editor
 
-[f:white:b]<%= Helpers::Text.full_line("-", line_cap: "+", line_color: "[f:white:b]") %>
+<%= full_line("-", line_cap: "+", color: "[f:white:b]") %>
 
-[f:green]Enter Option >>
+Enter Option >>
