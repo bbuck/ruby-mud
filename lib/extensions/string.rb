@@ -24,26 +24,16 @@ class String
   def colorize(opts = {})
     opts = default_colorize_options.merge(opts)
     ret = gsub(/\[reset\]/i, ANSI::RESET)
-    ret = ret.gsub(/(?<!__ESC__)\[([fb]:(.+?))\]/) do
-      code_tag = $1
-      matches = code_tag.match(/([fb]):(.+)/i)
-      method = matches[2] + (matches[1] == "f" ? "" : "_background")
-      bright = if method.end_with?(":b")
-        method = method[0..-3]
-        true
-      else
-        false
-      end
+    ret = ret.gsub(/(?<!__ESC__)\[([fb]:(?:.+?))\]/) do
+      fore_or_background, method, bright = $1.match(/([fb]):(.+?)(?:(:b)|\z)/i)[1..3]
+      method += "_background" if fore_or_background == "b"
+      bright = bright.present?
       color = if ANSI.respond_to?(method)
         ANSI.send(method, bright)
       else
         "[#{Regexp.last_match[0]}]"
       end
-      if bright
-        color
-      else
-        ANSI::RESET + color
-      end
+      ANSI::RESET + color
     end
     ret = ret.gsub("__ESC__[", "[")
     ret += ANSI::RESET if opts[:include_reset] && !ret.ends_with?(ANSI::RESET)
@@ -65,7 +55,7 @@ class String
       new_portion = []
       while line_idx < line.length
         if line[line_idx] == ANSI::ESCAPE
-          new_idx = line.index("m", line_idx + 1)
+          new_idx = line.index("m", line_idx)
           temp_str += line[line_idx..new_idx]
           line_idx = new_idx
         else
@@ -81,7 +71,7 @@ class String
             char_count = temp_str.length
           elsif line[line_idx + 1] == ANSI::ESCAPE
             new_idx = line.index("m", line_idx + 1)
-            temp_str += line[line_idx..new_idx]
+            temp_str += line[(line_idx + 1)..new_idx]
             line_idx = new_idx
             new_portion << temp_str
             temp_str, char_count = "", 0
@@ -97,6 +87,16 @@ class String
       idx += new_portion.length
     end
     return buffer
+  end
+
+  def center_with_colors(len)
+    diff = len - purge_colors.length
+    return self if diff > len
+    before = diff / 2
+    after = diff - before
+    before = 0 if before < 0
+    after = 0 if after < 0
+    (" " * before) + self + (" " * after)
   end
 
   def interval_value

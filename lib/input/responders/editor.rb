@@ -6,6 +6,7 @@ module Input
       IDENTIFIER_RX = "[a-z_][A-Za-z_0-9]*[a-zA-Z0-9_?!]"
       CLASS_IDENTIFIER_RX = "@@[a-zA-Z_][a-Za-z_0-9]*"
       INSTANCE_IDENTIFIER_RX = "@[a-zA-Z_][a-Za-z_0-9]*"
+      COMMENT = /\A\s*\#[\s\S]*\z/
       HIGHLIGHT = {
         symbol: {
           rx: /(?<![fb])(:[\w][\w\d]*?)(?=\b)/i,
@@ -42,6 +43,10 @@ module Input
         reserved_words: {
           rx: /(?<=\b|\A)(self|true|yes|on|false|no|off|lambda?|lambda|defined?)(?=\b|\z)/,
           replacement: "[f:red]$1[reset]"
+        },
+        comment: {
+          rx: /(\#[\s\S]+?)\z/,
+          replacement: "[f:black:b]$1[reset]"
         }
       }
 
@@ -50,15 +55,19 @@ module Input
       def highlight(line)
         new_line = line.dup
         if options[:syntax]
-          HIGHLIGHT.each do |_, details|
-            if line =~ details[:rx]
-              new_line.gsub!(details[:rx]) do
-                new_text = details[:replacement].dup
-                Regexp.last_match[1..-1].each_with_index do |match, idx|
-                  next if match.nil?
-                  new_text.gsub!("$#{idx + 1}", match)
+          if line =~ COMMENT
+            new_line = "[f:black:b]#{line}"
+          else
+            HIGHLIGHT.each do |_, details|
+              if line =~ details[:rx]
+                new_line.gsub!(details[:rx]) do
+                  new_text = details[:replacement].dup
+                  Regexp.last_match[1..-1].each_with_index do |match, idx|
+                    next if match.nil?
+                    new_text.gsub!("$#{idx + 1}", match)
+                  end
+                  new_text
                 end
-                new_text
               end
             end
           end
@@ -72,7 +81,7 @@ module Input
         end
       end
 
-      def send_edit_menu
+      def write_edit_menu
         unless buffer
           prop = editing_object.send(editing_property)
           prop ||= ""
@@ -83,11 +92,7 @@ module Input
           "[reset]#{idx.next.to_s.rjust(padding)}) #{highlight(escape(line))}"
         end
         text = Helpers::View.render("responder.editor.main", {display_lines: display_lines.join, property: editing_property})
-        send_no_prompt_or_newline(text)
-      end
-
-      def send_editor_help
-        send_no_prompt_or_newline(Helpers::View.render("responder.editor.help"))
+        write_without_prompt_or_newline(text)
       end
 
       # --- Helpers --------------------------------------------------------------
@@ -130,7 +135,7 @@ module Input
           options: opts,
           unsaved_changes: false
         }
-        send_edit_menu
+        write_edit_menu
       end
 
       def default_open_editor_options
@@ -145,13 +150,13 @@ module Input
       responders_for_mode :free_edit do
         parse_input_with(/\A.q\z/) do
           clear_mode
-          send_edit_menu
+          write_edit_menu
         end
 
         parse_input_with(/\A(.*)\z/) do |input|
           buffer << input + "\n"
           self.unsaved_changes = true
-          send_no_prompt_or_newline("[f:green]>> ")
+          write_without_prompt_or_newline("[f:green]>> ")
         end
       end
 
@@ -162,7 +167,7 @@ module Input
           self.unsaved_changes = true
           internal_state.delete(:index)
           clear_mode
-          send_edit_menu
+          write_edit_menu
         end
       end
 
@@ -171,14 +176,14 @@ module Input
           if answer =~ /y/i
             self.buffer = []
             self.unsaved_changes = true
-            send_edit_menu
+            write_edit_menu
           end
           clear_mode
-          send_edit_menu
+          write_edit_menu
         end
 
         parse_input_with(/\A.*\z/) do
-          send_no_prompt("[f:green]Are you sure you want to clear the entire buffer [f:green:b](y/n)[reset][f:green]?")
+          write_without_prompt("[f:green]Are you sure you want to clear the entire buffer [f:green:b](y/n)[reset][f:green]?")
         end
       end
 
@@ -191,12 +196,12 @@ module Input
           end
           clear_mode
           internal_state.delete(:index)
-          send_edit_menu
+          write_edit_menu
         end
 
         parse_input_with(/\A.*\z/) do
           idx = internal_state[:index]
-          send_no_prompt("[f:green]Are you sure you want to delete line ##{idx.next} from the buffer [f:green:b](y/n)[reset][f:green]?")
+          write_without_prompt("[f:green]Are you sure you want to delete line ##{idx.next} from the buffer [f:green:b](y/n)[reset][f:green]?")
         end
       end
 
@@ -205,7 +210,7 @@ module Input
           idx = internal_state.delete(:index)
           buffer.insert(idx, new_line + "\n")
           clear_mode
-          send_edit_menu
+          write_edit_menu
         end
       end
 
@@ -215,31 +220,31 @@ module Input
             restore_original_state
           else
             clear_mode
-            send_edit_menu
+            write_edit_menu
           end
         end
 
         parse_input_with(/\A.*\z/) do
-          send_no_prompt("[f:green]Are you sure you wish to exit without saving [f:green:b](y/n)[reset][f:green]?")
+          write_without_prompt("[f:green]Are you sure you wish to exit without saving [f:green:b](y/n)[reset][f:green]?")
         end
       end
 
       parse_input_with(/\A\.\z/) do
         change_mode(:free_edit)
-        send_no_prompt_or_newline("[f:green]>> ")
+        write_without_prompt_or_newline("[f:green]>> ")
       end
 
       parse_input_with(/\Aq\z/) do
         if unsaved_changes
           change_mode(:exit)
-          send_no_prompt("[f:green]Are you sure you wish to exit without saving [f:green:b](y/n)[reset][f:green]?")
+          write_without_prompt("[f:green]Are you sure you wish to exit without saving [f:green:b](y/n)[reset][f:green]?")
         else
           restore_original_state
         end
       end
 
       parse_input_with(/\Ah\z/) do
-        send_editor_help
+        render("responder.editor.help")
       end
 
       parse_input_with(/\A\.(\d+)\z/) do |line_idx|
@@ -247,15 +252,15 @@ module Input
         if idx < buffer.length
           change_mode(:line_edit)
           internal_state[:index] = idx
-          send_no_prompt("[f:green]Current:")
+          write_without_prompt("[f:green]Current:")
           text = buffer[idx]
           text = text.purge_colors unless options[:allow_colors] || options[:syntax]
           text = highlight(escape(text)) if options[:syntax]
-          send_no_prompt(text)
-          send_no_prompt_or_newline("\n[f:green]>> ")
+          write_without_prompt(text)
+          write_without_prompt_or_newline("\n[f:green]>> ")
         else
-          send_no_prompt("[f:yellow:b]There buffer isnt that big!")
-          send_edit_menu
+          write_without_prompt("[f:yellow:b]There buffer isnt that big!")
+          write_edit_menu
         end
       end
 
@@ -263,19 +268,19 @@ module Input
         idx = line_idx.to_i - 1
         internal_state[:index] = idx
         change_mode(:delete_line)
-        send_no_prompt("[f:green]Are you sure you want to delete line ##{idx.next} from the buffer [f:green:b](y/n)[reset][f:green]?")
+        write_without_prompt("[f:green]Are you sure you want to delete line ##{idx.next} from the buffer [f:green:b](y/n)[reset][f:green]?")
       end
 
       parse_input_with(/\Ai(\d+)\z/) do |line_idx|
         idx = line_idx.to_i - 1
         internal_state[:index] = idx
         change_mode(:insert_line)
-        send_no_prompt_or_newline("[f:green]>> ")
+        write_without_prompt_or_newline("[f:green]>> ")
       end
 
       parse_input_with(/\Ac\z/) do
         change_mode(:clear)
-        send_no_prompt("[f:green]Are you sure you want to clear the entire buffer [f:green:b](y/n)[reset][f:green]?")
+        write_without_prompt("[f:green]Are you sure you want to clear the entire buffer [f:green:b](y/n)[reset][f:green]?")
       end
 
       parse_input_with(/\Aw\z/) do
@@ -283,11 +288,11 @@ module Input
         text = buffer.join("")
         text = text.purge_colors unless options[:allow_colors] || options[:syntax]
         editing_object.update_attribute(editing_property, text)
-        send_no_prompt("[f:green]The buffer has been saved!")
+        write_without_prompt("[f:green]The buffer has been saved!")
       end
 
       parse_input_with(/\A.*\z/) do
-        send_edit_menu
+        write_edit_menu
       end
     end
   end

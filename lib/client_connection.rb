@@ -23,11 +23,11 @@ module Net
       self.input_state = :login
       self.time_of_last_action = self.time_connected = Time.now
       Laeron.config.logger.verbose("A client has connected from #{hostname}:#{ip_addr}")
-      send_text("\n\nRunning LaeronMUD Server v#{Laeron.version}...", prompt: false)
+      write("\n\nRunning LaeronMUD Server v#{Laeron.version}...", prompt: false)
       time_diff = (Time.now - Laeron.start_time).round
-      send_text("uptime #{time_diff.long_time_string}...\n\n", prompt: false)
-      send_text(GameSetting.display_title, prompt: false)
-      send_text("Welcome to the Laeron, please enter your character's name or type \"new\"", prompt: false)
+      write("uptime #{time_diff.long_time_string}...\n\n", prompt: false)
+      write(GameSetting.display_title, prompt: false)
+      write("Welcome to the Laeron, please enter your character's name or type \"new\"", prompt: false)
     end
 
     def receive_data(data)
@@ -51,7 +51,7 @@ module Net
       self.internal_state = nil
     end
 
-    def send_text(text, opts = {})
+    def write(text, opts = {})
       opts = default_write_options.merge(opts)
       text = text.colorize if opts[:colorize]
       text = clean_text(text)
@@ -75,13 +75,13 @@ module Net
     def quit
       player.disconnect if player.present?
       time_diff = (Time.now - time_connected).round
-      send_text("\n\n[f:yellow:b]Connected for #{time_diff.long_time_string}", prompt: false)
-      send_text("[f:yellow:b]Thank you for playing!\n\n", prompt: false)
+      write("\n\n[f:yellow:b]Connected for #{time_diff.long_time_string}", prompt: false)
+      write("[f:yellow:b]Thank you for playing!\n\n", prompt: false)
       close_connection_after_writing
     end
 
     def timeout
-      send_text("\n\n[f:yellow:b]You have been idle longer than 10 minutes, your connection has timed out.", prompt: false)
+      write("\n\n[f:yellow:b]You have been idle longer than 10 minutes, your connection has timed out.", prompt: false)
       quit
     end
 
@@ -113,7 +113,7 @@ module Net
     end
 
     def eleetscript_allow_methods
-      [:send_text]
+      :none
     end
   end
 end

@@ -22,13 +22,13 @@ class Input::Responder::Room < Input::Responder::Base
       else
         case current_room.exit_status(direction)
         when :locked
-          send("[f:green]You check the door but it's locked.")
+          write("[f:green]You check the door but it's locked.")
         when :unlocked, :closed
-          send("[f:green]The door is closed!")
+          write("[f:green]The door is closed!")
         end
       end
     else
-      send("[f:yellow:b]There is no exit #{direction}!")
+      write("[f:yellow:b]There is no exit #{direction}!")
     end
   end
 
@@ -44,29 +44,29 @@ class Input::Responder::Room < Input::Responder::Base
       if current_room.has_exit?(direction)
         if current_room.exit_open?(direction)
           new_room = current_room.send(direction)
-          send_room_description(new_room)
+          write_room_description(new_room)
         else
-          send("[f:yellow:b]You can't see through doors!")
+          write("[f:yellow:b]You can't see through doors!")
         end
       else
-        send("[f:yellow:b]There is no exit in that direction!")
+        write("[f:yellow:b]There is no exit in that direction!")
       end
     else
-      send_unknown_input
+      write_unknown_input
     end
   end
 
   parse_input_with(/\A(?:look|l) (.+)\z/) do |object|
     saw = current_room.player_looks_at(player, object)
     if saw && saw.kind_of?(String)
-      send(saw)
+      write(saw)
     else
-      send("[f:green]" + DONT_SEE.sample)
+      write("[f:green]" + DONT_SEE.sample)
     end
   end
 
   parse_input_with(/\A(?:look|l)\z/) do
-    send_room_description
+    write_room_description
   end
 
   # --- Directional Handlers ----------------------------------------------------
@@ -76,7 +76,7 @@ class Input::Responder::Room < Input::Responder::Base
     if Helpers::Exit.valid?(direction)
       travel(direction)
     else
-      send_unknown_input
+      write_unknown_input
     end
   end
 
@@ -87,59 +87,59 @@ class Input::Responder::Room < Input::Responder::Base
       status = current_room.open_exit(direction)
       case status
       when :success
-        send("[f:green]You open the door.")
+        write("[f:green]You open the door.")
       when :no_door
-        send("[f:green]There is no door there!")
+        write("[f:green]There is no door there!")
       when :locked
-        send("[f:green]You can't open a locked door!")
+        write("[f:green]You can't open a locked door!")
       when :open
-        send("[f:green]The door is already open!")
+        write("[f:green]The door is already open!")
       when :no_exit
-        send("[f:yellow:b]There is no exit in that direction!")
+        write("[f:yellow:b]There is no exit in that direction!")
       end
     when "close"
       status = current_room.close_exit(direction)
       case status
       when :success
-        send("[f:green]You close the door.")
+        write("[f:green]You close the door.")
       when :closed
-        send("[f:green]The door is already closed!")
+        write("[f:green]The door is already closed!")
       when :no_door
-        send("[f:green]There is no door there!")
+        write("[f:green]There is no door there!")
       when :no_exit
-        send("[f:yellow:b]There is no exit in that direction!")
+        write("[f:yellow:b]There is no exit in that direction!")
       end
     when "unlock"
       status = current_room.unlock_exit(direction, player)
       case status
       when :success
-        send("[f:green]You unlock the door.")
+        write("[f:green]You unlock the door.")
       when :no_door
-        send("[f:green]There is no door there!")
+        write("[f:green]There is no door there!")
       when :no_lock
-        send("[f:green]There is no way to lock this door!")
+        write("[f:green]There is no way to lock this door!")
       when :unlocked
-        send("[f:green]The door has already been unlocked!")
+        write("[f:green]The door has already been unlocked!")
       when :open
-        send("[f:green]You must close the door first!")
+        write("[f:green]You must close the door first!")
       when :no_exit
-        send("[f:yellow:b]There is no exit in that direction!")
+        write("[f:yellow:b]There is no exit in that direction!")
       end
     when "lock"
       status = current_room.lock_exit(direction)
       case status
       when :success
-        send("[f:green]You lock the door.")
+        write("[f:green]You lock the door.")
       when :no_door
-        send("[f:green]There is no door there!")
+        write("[f:green]There is no door there!")
       when :no_lock
-        send("[f:green]There is no way to lock this door!")
+        write("[f:green]There is no way to lock this door!")
       when :locked
-        send("[f:green]The door has already been locked!")
+        write("[f:green]The door has already been locked!")
       when :open
-        send("[f:green]You must close the door first!")
+        write("[f:green]You must close the door first!")
       when :no_exit
-        send("[f:yellow:b]There is no exit in that direction!")
+        write("[f:yellow:b]There is no exit in that direction!")
       end
     end
   end

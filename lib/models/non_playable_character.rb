@@ -24,6 +24,15 @@ class NonPlayableCharacter < ActiveRecord::Base
       # respond to the player saying something
     end
 
+    # Called to determine how to display this NPC in the room. By default the
+    # idle action is "is standing here" but depending on what the NPC is doing
+    # or what kind of NPC this may be somethign like "is hovering here" or "can
+    # be seen here
+    # return {String} the text to display as the idle action for this NPC.
+    idle_action do
+      # return an idle action if different from the default, "is standing here"
+    end
+
     # Called when the NPC is told to update, update ticks happen at a minimum
     # of 1 minute intervals, be aware of that.
     update_tick do
@@ -49,7 +58,9 @@ class NonPlayableCharacter < ActiveRecord::Base
   class << self
     def update_tick
       Laeron.config.logger.debug("Starting NPC Update Tick.")
-      NonPlayableCharacter.needs_update.find_each { |npc| npc.update }
+      NonPlayableCharacter.needs_update.find_each do |npc|
+        EM.next_tick { npc.update }
+      end
     end
   end
 
@@ -77,6 +88,15 @@ class NonPlayableCharacter < ActiveRecord::Base
   def update
     script_engine.call(:update_tick)
     update_attributes(update_at: Time.now + update_timer.interval_value)
+  end
+
+  def idle_action
+    idle_action = script_engine.call(:idle_action)
+    if idle_action.blank?
+      "[f:green]is standing here."
+    else
+      idle_action
+    end
   end
 
   # --- Script Accessible Helpers --------------------------------------------
@@ -123,7 +143,7 @@ class NonPlayableCharacter < ActiveRecord::Base
 
   def tell(player, msg)
     message = Game::ChannelFormatter.format(:tell_to, {"%N" => name, "%M" => msg})
-    player.connection.send_text(message)
+    player.write(message)
   end
 
   # --- EleetScript Locks ----------------------------------------------------

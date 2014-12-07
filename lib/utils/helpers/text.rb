@@ -26,9 +26,10 @@ module Helpers
         line_length: Laeron.config.text.line_length,
         color: ""
       })
+      target_len = options[:line_length] - (options[:line_cap].length * 2)
       str = "" + options[:color]
       str += options[:line_cap]
-      str += (char * (options[:line_length] - 2))
+      str += (char * target_len)
       str += options[:line_cap]
       str += "[reset]" if options[:color].length > 0
       str

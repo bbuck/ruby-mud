@@ -2,13 +2,8 @@ class Player < ActiveRecord::Base
   include BCrypt
   extend Memoist
 
-  BUILD_PERMISSION = 1
-  CONTROL_PERMISSION = 2
-  SPAWN_PERMISSION = 4
-  ADMIN_PERMISSION = 8
-  SUPER_ADMIN_PERMISSION = 16
-
   serialize :game_data, Hash
+  serialize :permissions, BitMask
 
   has_many :tracking, class_name: "PlayerTracking"
   belongs_to :room
@@ -17,6 +12,12 @@ class Player < ActiveRecord::Base
 
   scope :with_username, ->(username) { where("lower(username) = ?", username.downcase) }
   scope :online, -> { where(id: tcp_connections.keys) }
+  scope :admins, -> { where(permissions: Game::Permissions.admin_permissions) }
+  scope :celestials, -> { where(permissions: Game::Permissions.celestial_permissions) }
+  scope :game_masters, -> { where(permissions: Game::Permissions.game_master_permissions) }
+  scope :builders, -> { where(permissions: Game::Permissions.builder_permissions) }
+  scope :events_team, -> { where(permissions: Game::Permissions.events_tema_permissions) }
+  scope :without_permissions, -> { where(permissions: 0) }
 
   class << self
     # --- Connection Helpers -------------------------------------------------
@@ -49,7 +50,7 @@ class Player < ActiveRecord::Base
       tracking.update_attributes(connection_count: (tracking.connection_count || 0) + 1)
       if tcp_connections[player_id] && tcp_connections[player_id].length > 0
         tcp_connections[player_id].each do |old_conn|
-          old_conn.send_text("You are being disconnected because your character was accessed by another client.")
+          old_conn.write("You are being disconnected because your character was accessed by another client.")
           old_conn.quit
         end
         tcp_connections[player_id].clear
@@ -74,7 +75,7 @@ class Player < ActiveRecord::Base
     elsif builder?
       "[f:green:b]"
     else
-      ""
+      "[reset]"
     end
     name_color + username
   end
@@ -117,9 +118,9 @@ class Player < ActiveRecord::Base
     end
   end
 
-  def send_text(text, opts = {})
+  def write(text, opts = {})
     tcp_connections.each do |conn|
-      conn.send_text(text, opts)
+      conn.write(text, opts)
     end
   end
 
@@ -148,73 +149,83 @@ class Player < ActiveRecord::Base
 
   def can_build?
     reload
-    permissions & BUILD_PERMISSION == BUILD_PERMISSION
+    permissions =~ Game::Permissions::BUILD_PERMISSION
   end
 
   def can_control?
     reload
-    permissions & CONTROL_PERMISSION == CONTROL_PERMISSION
+    permissions =~ Game::Permissions::CONTROL_PERMISSION
   end
 
   def can_spawn?
     reload
-    permissions & SPAWN_PERMISSION == SPAWN_PERMISSION
+    permissions =~ Game::Permissions::SPAWN_PERMISSION
   end
 
   def can_administrate?
     reload
-    permissions & ADMIN_PERMISSION == ADMIN_PERMISSION
+    permissions =~ Game::Permissions::ADMIN_PERMISSION
   end
 
   def can_promote_to_admin?
     reload
-    permissions & SUPER_ADMIN_PERMISSION == SUPER_ADMIN_PERMISSION
+    permissions =~ Game::Permissions::SUPER_ADMIN_PERMISSION
   end
 
   def make_builder
-    update_attribute(:permissions, BUILD_PERMISSION & SPAWN_PERMISSION)
+    permissions.reset << Game::Permissions.builder_permissions
+    save
   end
 
   def builder?
-    permissions == (BUILD_PERMISSION | SPAWN_PERMISSION)
+    reload
+    permissions =~ Game::Permissions::builder_permissions
   end
 
   def make_events_team
-    update_attribute(:permissions, CONTROL_PERMISSION | SPAWN_PERMISSION)
+    permissions.reset << Game::Permissions.events_team_permissions
+    save
   end
 
   def events_team?
-    permissions = (CONTROL_PERMISSION | SPAWN_PERMISSION)
+    reload
+    permissions =~ Game::Permissions.events_team_permissions
   end
 
   def make_game_master
-    update_attribute(:permissions, ADMIN_PERMISSION | CONTROL_PERMISSION | SPAWN_PERMISSION)
+    permissions.reset << Game::Permissions.game_master_permissions
+    save
   end
 
   def game_master?
-    permissions == (ADMIN_PERMISSION | CONTROL_PERMISSION | SPAWN_PERMISSION)
+    reload
+    permissions =~ Game::Permissions.game_master_permissions
   end
 
   def make_celestial
-    update_attribute(:permission, BUILD_PERMISSION | ADMIN_PERMISSION | CONTROL_PERMISSION | SPAWN_PERMISSION)
+    permissions.reset << Game::Permission.celestial_permissions
+    save
   end
 
   def celestial?
-    permissions == (BUILD_PERMISSION | ADMIN_PERMISSION | CONTROL_PERMISSION | SPAWN_PERMISSION)
+    reload
+    permissions =~ Game::Permissions.celestial_permissions
   end
 
   def make_admin
-    update_attribute(:permissions, BUILD_PERMISSION | ADMIN_PERMISSION | CONTROL_PERMISSION | SPAWN_PERMISSION | SUPER_ADMIN_PERMISSION)
+    permissions.reset << Game::Permissions.admin_permissions
+    save
   end
 
   def admin?
-    permissions == (BUILD_PERMISSION | ADMIN_PERMISSION | CONTROL_PERMISSION | SPAWN_PERMISSION | SUPER_ADMIN_PERMISSION)
+    reload
+    permissions =~ Game::Permissions.admin_permissions
   end
 
   # --- ES Locks -------------------------------------------------------------
 
   def eleetscript_allow_methods
-    [:display_name, :send_text]
+    [:display_name, :write]
   end
   memoize :eleetscript_allow_methods
 end

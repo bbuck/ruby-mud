@@ -100,21 +100,25 @@ class Program
 end
 
 MIGRATION_ERB = ERB.new <<-MIGRATION_ERB
-class <%= name.classify %> < ActiveRecord::Migration
+class <%= name.camelize %> < ActiveRecord::Migration
   def change
   end
 end
 MIGRATION_ERB
 
 RESPONDER_ERB = ERB.new <<-RESPONDER_ERB
-class Input::Responder::<%= name.classify %> < Input::Responder::Base
-  # --- Template Helpers -------------------------------------------------
-  # --- Public Helpers ---------------------------------------------------
-  # --- Responders -------------------------------------------------------
-  # --- Private Helpers --------------------------------------------------
+module Input
+  module Responder
+    class <%= name.camelize %> < Base
+      # --- Template Helpers -------------------------------------------------
+      # --- Public Helpers ---------------------------------------------------
+      # --- Responders -------------------------------------------------------
+      # --- Private Helpers --------------------------------------------------
+    end
+  end
 end
 
-Input::Manager.register_responder(:<%= mode %>, Input::Responder::<%= name.classify %>)
+Input::Manager.register_responder(:<%= mode %>, Input::Responder::<%= name.camelize %>)
 RESPONDER_ERB
 
 program = Program.new

@@ -1,0 +1,30 @@
+
+<%= header_with_title("Colors", line_color: "[f:white:b]", title_color: "[f:green]") %>
+
+TODO: Info about using colors
+
+TODO: What colors can be used on
+
+TODO: Define color code structure
+
+[f:green]Foreground Colors
+<%= full_line("-", color: "[f:white:b]") %>
+
+    [f:black]Black[reset]           __ESC__[f:black]      [f:red]Red[reset]             __ESC__[f:red]
+    [f:green]Green[reset]           __ESC__[f:green]      [f:yellow]Yellow[reset]          __ESC__[f:yellow]
+    [f:blue]Blue[reset]            __ESC__[f:blue]       [f:magenta]Magenta[reset]         __ESC__[f:magenta]
+    [f:cyan]Cyan[reset]            __ESC__[f:cyan]       [f:white]White[reset]           __ESC__[f:white]
+
+
+    [f:black:b]Bright Black[reset]    __ESC__[f:black:b]    [f:red:b]Bright Red[reset]      __ESC__[f:red:b]
+    [f:green:b]Bright Green[reset]    __ESC__[f:green:b]    [f:yellow:b]Bright Yellow[reset]   __ESC__[f:yellow:b]
+    [f:blue:b]Bright Blue[reset]     __ESC__[f:blue:b]     [f:magenta:b]Bright Magenta[reset]  __ESC__[f:magenta:b]
+    [f:cyan:b]Bright Cyan[reset]     __ESC__[f:cyan:b]     [f:white:b]Bright White[reset]    __ESC__[f:white:b]
+
+[f:green]Background Colors
+<%= full_line("-", color: "[f:white:b]") %>
+
+    [b:black]Black[reset]           __ESC__[b:black]      [b:red]Red[reset]             __ESC__[b:red]
+    [b:green]Green[reset]           __ESC__[b:green]      [b:yellow]Yellow[reset]          __ESC__[b:yellow]
+    [b:blue]Blue[reset]            __ESC__[b:blue]       [b:magenta]Magenta[reset]         __ESC__[b:magenta]
+    [b:cyan]Cyan[reset]            __ESC__[b:cyan]       [b:white]White[reset]           __ESC__[b:white]

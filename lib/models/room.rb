@@ -74,7 +74,7 @@ class Room < ActiveRecord::Base
   def player_enters(player, dir)
     from_dir = Helpers::Exit.proper(Helpers::Exit.inverse(dir))
     transmit("[f:green]#{player.display_name} [f:green]enters from #{from_dir}.")
-    player.tcp_connection.send_text(display_text(player), newline: false)
+    player.write(display_text(player), newline: false)
     script_engine.call(:player_entered, player, Helpers::Exit.inverse(dir))
     npcs_in_room.each { |npc| npc.player_entered(player) }
   end
@@ -332,7 +332,7 @@ class Room < ActiveRecord::Base
       next if exclude_player
       if Player.tcp_connections[pid]
         Player.tcp_connections[pid].each do |conn|
-          conn.send_text(message, prompt: false)
+          conn.write(message, prompt: false)
         end
       end
     end
@@ -345,14 +345,15 @@ class Room < ActiveRecord::Base
   def display_text(player)
     reload
     divider = Helpers::Text.full_line("-")
-    display = <<-ROOM.strip_heredoc
-
-      #{display_name}[reset]
-      #{divider}
-      [f:green]#{description}
-      [reset]#{divider}
-      #{exit_string}
-    ROOM
+    display = [
+      "",
+      "#{display_name}[reset]",
+      divider,
+      "[f:green]#{description}[reset]",
+      divider,
+      exit_string,
+      ""
+    ].join("\n")
     display + "#{contents_string(player)}"
   end
 
@@ -374,7 +375,7 @@ class Room < ActiveRecord::Base
   def npc_string_data(padding = "")
     npcs = []
     npcs_in_room.each do |npc|
-      npcs << "#{padding}[f:green]#{npc.display_name} [f:green]is standing here."
+      npcs << "#{padding}[f:green]#{npc.display_name} [reset]#{npc.idle_action}"
     end
     npcs
   end

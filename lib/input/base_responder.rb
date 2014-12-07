@@ -1,25 +1,24 @@
 module Input
   module Responder
     class Base
+      include ActiveSupport::Callbacks
+      define_callbacks :responder, terminator: ->(target, result) { result == false }
+
+      # Class Methods
+
       class << self
         @allow_blank_input = false
 
-        def before_responder(*names)
-          @before_responders ||= []
-          @before_responders += names
+        def before_responder(name, options = {}, &block)
+          set_callback_helper(:before, :responder, name, options, &block)
         end
 
-        def after_responder(*names)
-          @after_responders ||= []
-          @after_responders += names
+        def after_responder(name, options = {}, &block)
+          set_callback_helper(:after, :responder, name, options, &block)
         end
 
-        def before_responders
-          (@before_responders ||= [])
-        end
-
-        def after_responders
-          (@after_responders ||= [])
+        def around_responder(name, options = {}, &block)
+          set_callback_helper(:around, :responder, name, options, &block)
         end
 
         def responders_for_mode(mode, &block)
@@ -47,7 +46,15 @@ module Input
         def allow_blank_input
           @allow_blank_input = true
         end
+
+        private
+
+        def set_callback_helper(before_or_after, callback, name, options, &block)
+          set_callback(callback, before_or_after, name, options, &block)
+        end
       end
+
+      # Instance methods
 
       def initialize(connection)
         @connection = connection
@@ -64,12 +71,11 @@ module Input
           :__default
         end
         self.class.responders(current_mode).each do |(regex, block)|
-          match_data = input.match(regex)
-          if match_data
-            self.class.before_responders.each { |method| return true if __send__(method) == false }
-            input_args = match_data[1..match_data.length]
-            instance_exec(*input_args, &block)
-            self.class.after_responders.each { |method| __send__(method) }
+          if match_data = input.match(regex)
+            run_callbacks :responder do
+              input_args = match_data[1..match_data.length]
+              instance_exec(*input_args, &block)
+            end
             return true
           end
         end
@@ -80,13 +86,13 @@ module Input
 
       def render(*args)
         meth_name = args.last
-        if meth_name.kind_of?(Hash)
-          meth_name = :send_no_prompt
+        unless meth_name.kind_of?(Symbol)
+          meth_name = :write_without_prompt
         else
           args.pop
         end
         view = Helpers::View.render(*args)
-        __send__(meth_name, view)
+        send(meth_name, view)
       end
 
       def input_state
@@ -94,6 +100,7 @@ module Input
       end
 
       def change_mode(new_mode)
+        self.internal_state = {} if internal_state.blank?
         internal_state[:mode] = new_mode
       end
 
@@ -129,9 +136,9 @@ module Input
         Laeron.config.logger
       end
 
-      def send_room_description(room = nil)
+      def write_room_description(room = nil)
         room = current_room if room.nil?
-        send_no_newline(room.display_text(player))
+        write_without_newline(room.display_text(player))
       end
 
       def player
@@ -154,28 +161,28 @@ module Input
         connection.internal_state = value
       end
 
-      def send(text, opts = {})
-        connection.send_text(text, opts)
+      def write(text, opts = {})
+        connection.write(text, opts)
       end
 
-      def send_no_prompt(text)
-        connection.send_text(text, prompt: false)
+      def write_without_prompt(text)
+        connection.write(text, prompt: false)
       end
 
-      def send_no_newline(text)
-        connection.send_text(text, newline: false)
+      def write_without_newline(text)
+        connection.write(text, newline: false)
       end
 
-      def send_no_prompt_or_newline(text)
-        connection.send_text(text, newline: false, prompt: false)
+      def write_without_prompt_or_newline(text)
+        connection.write(text, newline: false, prompt: false)
       end
 
-      def send_unknown_input
+      def write_unknown_input
         InputManager.unknown_input(connection)
       end
 
-      def send_not_authorized
-        connection.send_text("[f:red]You are not authorized to access this command!", prompt: false)
+      def write_not_authorized
+        write_without_prompt("[f:yellow:b]You are not authorized to access this command!")
       end
 
       attr_reader :connection

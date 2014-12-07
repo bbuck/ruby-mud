@@ -57,7 +57,7 @@ module Input
       end
 
       def unknown_input(connection)
-        connection.send_text("[f:yellow:b]#{UNKNOWN_INPUT_RESPONSES.sample}", prompt: false)
+        connection.write("[f:yellow:b]#{UNKNOWN_INPUT_RESPONSES.sample}", prompt: false)
       end
 
       private

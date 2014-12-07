@@ -1,10 +1,10 @@
 module Input
   module Responder
-    class BuildCommands < Base
+    class BuilderCommands < Base
       # --- Templates Helpers ----------------------------------------------------
 
-      def send_room_info(room = current_room)
-        send(Helpers::View.render("responder.build_commands.room_info", {room: room}))
+      def write_room_info(room = current_room)
+        render("responder.build_commands.room_info", {room: room}, :write)
       end
 
       # --- Helpers --------------------------------------------------------------
@@ -21,14 +21,14 @@ module Input
       parse_input_with(/\A@room info #?(\d+)\z/) do |room_id|
         begin
           room = ::Room.find(room_id)
-          send_room_info(room)
+          write_room_info(room)
         rescue ActiveRecord::RecordNotFound => e
-          send("[f:yellow:b]There is no room with the id ##{room_id}")
+          write("[f:yellow:b]There is no room with the id ##{room_id}")
         end
       end
 
       parse_input_with(/\A@room info\z/) do
-        send_room_info
+        write_room_info
       end
 
       parse_input_with(/\A@room search (.*?)\z/) do |query|
@@ -38,9 +38,9 @@ module Input
             "[f:green]##{room.id} - [f:white:b]#{room.name}"
           end
           str = "\n" + lines.join("\n") + "\n"
-          send_no_prompt(str)
+          write_without_prompt(str)
         else
-          send_no_prompt("[f:yellow:b]No rooms were found matching \"#{query}\"")
+          write_without_prompt("[f:yellow:b]No rooms were found matching \"#{query}\"")
         end
       end
 
@@ -57,7 +57,7 @@ module Input
           room = ::Room.find(room_id)
           create_responder(RoomBuilder).edit_room(room)
         rescue ActiveRecord::RecordNotFound => e
-          send("[f:yellow:b]There is no room with the id ##{room_id}")
+          write("[f:yellow:b]There is no room with the id ##{room_id}")
         end
       end
 
@@ -82,12 +82,12 @@ module Input
           npc = ::NPC.find(id.to_i)
           create_responder(NpcBuilder).edit_npc(npc)
         rescue ActiveRecord::RecordNotFound => e
-          send_no_prompt("[f:yellow:b]The NPC with id \"#{id}\" does not exist!")
+          write_without_prompt("[f:yellow:b]The NPC with id \"#{id}\" does not exist!")
         end
       end
 
       parse_input_with(/\A@npc create (.+?)\z/) do |name|
-        npc = ::NPC.create(name: name)
+        npc = ::NPC.create(name: name, creator: player)
         create_responder(NpcBuilder).edit_npc(npc)
       end
 
@@ -113,7 +113,7 @@ module Input
           faction = ::Faction.find(id)
           create_responder(FactionBuilder).edit_faction(faction)
         rescue ActiveRecord::RecordNotFound => e
-          send_no_prompt("[f:yellow:b]The faction with id \"#{id}\" does not exist")
+          write_without_prompt("[f:yellow:b]The faction with id \"#{id}\" does not exist")
         end
       end
 
@@ -121,7 +121,7 @@ module Input
 
       def player_can_build?
         unless player.can_build?
-          send_not_authorized
+          write_not_authorized
           false
         end
       end
@@ -129,4 +129,4 @@ module Input
   end
 end
 
-Input::Manager.register_responder(:standard, Input::Responder::BuildCommands)
+Input::Manager.register_responder(:standard, Input::Responder::BuilderCommands)
