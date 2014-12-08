@@ -1,20 +1,20 @@
 
 
-<%= full_line("-", line_cap: "+", line_color: "[f:white:b]") %>
-|   NPC Builder (v 1.0 by Brandon Buck)                                        |
-<%= full_line("-", line_cap: "+", line_color: "[f:white:b]") %>
+<%= full_line("-", line_cap: "+", color: "[f:white:b]") %>
+[f:white:b]|   [f:green]NPC Builder (v 1.0 by Brandon Buck)                                        [f:white:b]|
+<%= full_line("-", line_cap: "+", color: "[f:white:b]") %>
 
-  = NPC #<%= npc.id %> - <%= npc.name %>
+  [f:green]= NPC #<%= npc.id %> - <%= npc.name %>
 
-  [1] Edit Name
-  [2] Edit Description
-  [3] Edit Script
-  [4] Edit Update Timer (<%= npc.update_timer.present? ? npc.respawn_timer : "none" %>) (NYI)
-  [5] Edit Respawn Timer (<%= npc.respawn_timer.present? ? npc.respawn_timer : "none" %>) (NYI)
-  [6] Set Room (<%= npc.room_id.present? ? npc.room.display_name : "nowhere" %>)
+  [f:white:b][1][f:green] Edit Name
+  [f:white:b][2][f:green] Edit Description
+  [f:white:b][3][f:green] Edit Script
+  [f:white:b][4][f:green] Edit Update Timer [f:white:b](<%= npc.update_timer.present? ? npc.update_timer : "none" %>)[reset]
+  [f:white:b][5][f:green] Edit Respawn Timer [f:white:b](<%= npc.respawn_timer.present? ? npc.respawn_timer : "none" %>)[reset]
+  [f:white:b][6][f:green] Add to Rooms [f:white:b](located in <%= pluralize(room_count, "room") %>)
 
-  [7] Exit Editor
+  [f:white:b][7][f:green] Exit Editor
 
 <%= full_line("-", line_cap: "+", color: "[f:white:b]") %>
 
-Enter Option >>
+[f:green]Enter Option >>

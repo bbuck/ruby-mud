@@ -55,7 +55,7 @@ class Room < ActiveRecord::Base
   serialize :exits, Hash
 
   has_many :players_in_room, class_name: "Player"
-  has_many :npcs_in_room, class_name: "NonPlayableCharacter"
+  has_many :npcs_in_room, class_name: "SpawnedNonPlayableCharacter"
   belongs_to :creator, class_name: "Player"
 
   scope :name_like, ->(name) { where("name ILIKE ?", "%#{name}%") }

@@ -7,6 +7,10 @@ module Input
         render("responder.game_setting_editor.main_menu", {settings: game_settings})
       end
 
+      def write_set_room_commands_help
+        render("responder.game_setting_editor.set_room_help")
+      end
+
       # --- Public Helpers ---------------------------------------------------
 
       def edit_settings
@@ -25,6 +29,34 @@ module Input
         end
       end
 
+      responders_for_mode :set_initial_room do
+        parse_input_with(/\A\backz/) do
+          clear_mode
+          write_game_setting_menu
+        end
+
+        parse_input_with(/\Asearch (.+?)\z/) do |query|
+          rooms = ::Room.name_like(query).limit(10)
+          if rooms.count > 0
+            room_str = rooms.map { |r| "[reset]##{r.id} - [f:white:b]#{f.display_name}" }.join("\n")
+            "\n#{room_str}\n"
+          else
+            write_without_prompt("[f:green]No rooms matching \"#{query}\" were found.")
+          end
+        end
+
+        parse_input_with(/\Aset #?(\d+?)\z/) do |room_id|
+          begin
+            room = ::Room.find(room_id)
+            game_settings.update_attributes(initial_room: room)
+            clear_mode
+            write_game_setting_menu
+          rescue ActiveRecord::RecordNotFound => e
+            write_without_prompt("[f:yellow:b]There is no room with the ID ##{room_id}, try searching for the right one?")
+          end
+        end
+      end
+
       parse_input_with(/\A1\z/) do
         create_responder(Editor).open_editor(game_settings, :game_title, allow_colors: true) do
           write_game_setting_menu
@@ -37,6 +69,8 @@ module Input
       end
 
       parse_input_with(/\A3\z/) do
+        change_mode(:set_initial_room)
+        set_room_commands_help
       end
 
       parse_input_with(/\A4\z/) do

@@ -44,6 +44,10 @@ module Helpers
       end
     end
 
+    def pluralize(count, word)
+      "#{count} #{word.pluralize(count)}"
+    end
+
     module_function *instance_methods
   end
 end

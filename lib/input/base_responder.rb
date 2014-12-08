@@ -132,6 +132,10 @@ module Input
         connection.original_state = value
       end
 
+      def stored_original_state?
+        original_state.present?
+      end
+
       def logger
         Laeron.config.logger
       end
@@ -151,6 +155,7 @@ module Input
 
       def change_input_state(new_state)
         connection.input_state = new_state
+        connection.internal_state = nil
       end
 
       def internal_state

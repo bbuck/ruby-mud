@@ -52,7 +52,8 @@ module Laeron
 
         EM::PeriodicTimer.new(1.minute) { Net::ClientConnection.timeout_inactive_players }
         EM::PeriodicTimer.new(1.minute) { Helpers::Room.check_all_doors_and_locks }
-        EM::PeriodicTimer.new(1.minute) { ::NonPlayableCharacter.update_tick }
+        EM::PeriodicTimer.new(1.minute) { ::SpawnedNPC.update_tick }
+        EM::PeriodicTimer.new(10.minutes) { ::SpawnedNPC.purge_obselete }
       end
     end
 

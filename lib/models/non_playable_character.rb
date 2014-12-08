@@ -41,65 +41,19 @@ class NonPlayableCharacter < ActiveRecord::Base
     end
   SCRIPT
 
-  include Scriptable
   extend Memoist
 
   belongs_to :room
   belongs_to :creator, class_name: "Player"
+  has_many :spawned_npcs, class_name: "SpawnedNonPlayableCharacter", foreign_key: :base_npc_id, dependent: :destroy
 
-  before_save :set_update_at_time
   before_save :set_default_script
+  before_save :reload_script_engines, if: :script_changed?
+  before_save :set_spawned_update_times, if: :update_timer_changed?
 
-  scope :needs_update, -> { where("update_at < ?", Time.now).where.not(room_id: nil) }
   scope :name_like, ->(query) { where("name ILIKE ?", "%#{query}%") }
 
-  script_var_name :me
-
-  class << self
-    def update_tick
-      Laeron.config.logger.debug("Starting NPC Update Tick.")
-      NonPlayableCharacter.needs_update.find_each do |npc|
-        EM.next_tick { npc.update }
-      end
-    end
-  end
-
   # --- Helpers --------------------------------------------------------------
-
-  # --- Script Helpers -------------------------------------------------------
-
-  def update_script_variables(engine)
-    super
-    engine["@room"] = room
-  end
-
-  def player_entered(player)
-    script_engine.call(:player_entered, player)
-  end
-
-  def player_left(player)
-    script_engine.call(:player_left, player)
-  end
-
-  def player_said(player, text)
-    script_engine.call(:player_said, player, text)
-  end
-
-  def update
-    script_engine.call(:update_tick)
-    update_attributes(update_at: Time.now + update_timer.interval_value)
-  end
-
-  def idle_action
-    idle_action = script_engine.call(:idle_action)
-    if idle_action.blank?
-      "[f:green]is standing here."
-    else
-      idle_action
-    end
-  end
-
-  # --- Script Accessible Helpers --------------------------------------------
 
   def display_name
     "[f:cyan:b]#{name}"
@@ -113,59 +67,32 @@ class NonPlayableCharacter < ActiveRecord::Base
     end
   end
 
-  def say(msg)
-    unless room.nil?
-      message = Game::ChannelFormatter.format(:say_to, {"%N" => name, "%M" => msg})
-      room.transmit(message)
-    end
+  def spawn(room)
+    SpawnedNPC.create(room: room, base_npc: self)
   end
-
-  def yell(msg)
-    unless room.nil?
-      message = Game::ChannelFormatter.foramt(:yell, {"%N" => name, "%M" => msg})
-      Game::Yell.new(message, room)
-    end
-  end
-
-  def post(msg)
-    unless room.nil?
-      message = Game::ChannelFormatter.format(:post, {"%N" => name, "%M" => msg})
-      room.transmit(message)
-    end
-  end
-
-  def xpost(msg)
-    unless room.nil?
-      message = Game::ChannelFormatter.format(:xpost, {"%M" => msg})
-      room.transmit(message)
-    end
-  end
-
-  def tell(player, msg)
-    message = Game::ChannelFormatter.format(:tell_to, {"%N" => name, "%M" => msg})
-    player.write(message)
-  end
-
-  # --- EleetScript Locks ----------------------------------------------------
 
   def eleetscript_allow_methods
-    [:display_name, :say, :tell, :post, :xpost]
+    [:spawn]
   end
   memoize :eleetscript_allow_methods
 
   private
 
-  def set_default_script
-    if script.blank?
-      self.script = DEFAULT_SCRIPT
+  def set_spawned_update_times
+    spawned_npcs.where(next_update: nil).find_each do |npc|
+      npc.update_attributes(next_update: Time.now + update_timer.interval_value)
     end
   end
 
-  def set_update_at_time
-    if update_timer.present? && update_at.nil?
-      self.update_at = Time.now + update_timer.interval_value
-    elsif update_timer.nil?
-      self.update_at = nil
+  def reload_script_engines
+    spawned_npc_ids.each do |id|
+      SpawnedNPC.reload_engine(id, script || "")
+    end
+  end
+
+  def set_default_script
+    if script.blank?
+      self.script = DEFAULT_SCRIPT
     end
   end
 end

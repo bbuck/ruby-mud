@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 1417818855) do
+ActiveRecord::Schema.define(version: 1418041009) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -34,13 +34,10 @@ ActiveRecord::Schema.define(version: 1417818855) do
 
   create_table "non_playable_characters", force: true do |t|
     t.integer  "creator_id",    null: false
-    t.integer  "room_id"
     t.string   "name",          null: false
     t.text     "script"
     t.string   "update_timer"
-    t.datetime "update_at"
     t.string   "respawn_timer"
-    t.datetime "respawn_at"
     t.datetime "created_at"
     t.datetime "updated_at"
     t.text     "description"
@@ -91,6 +88,13 @@ ActiveRecord::Schema.define(version: 1417818855) do
     t.text     "script"
     t.integer  "creator_id"
     t.text     "exits"
+  end
+
+  create_table "spawned_non_playable_characters", force: true do |t|
+    t.integer  "base_npc_id"
+    t.integer  "room_id"
+    t.datetime "next_update"
+    t.datetime "next_respawn"
   end
 
 end

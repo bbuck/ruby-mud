@@ -65,7 +65,7 @@ class Player < ActiveRecord::Base
 
   # --- Display Helpers ---------------------------------------------------------------
 
-  def display_name
+  def display_name(with_colors = true)
     name_color = if admin?
       "[f:cyan:b]"
     elsif celestial?
@@ -77,7 +77,7 @@ class Player < ActiveRecord::Base
     else
       "[reset]"
     end
-    name_color + username
+    (with_colors ? name_color : "") + username
   end
 
   def display_prompt

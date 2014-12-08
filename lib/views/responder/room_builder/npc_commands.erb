@@ -1,0 +1,36 @@
+
+<%= full_line("=", color: "[f:white:b]") %>
+
+  [f:green]There are <%= pluralize(npc_count, "NPC") %> in this room.
+
+  [f:white:b]list
+    [f:green]list the NPCs currently in the room
+
+  [f:white:b]search <query>
+    [f:green]list up to 10 NPCs with names matching the query
+
+  [f:white:b]new <npc name>
+    [f:green]open the NPC editor, creating a new NPC. when done editing this will spawn
+    the NPC in the room automatically and return you to this menu
+
+  [f:white:b]add #<npc id>
+  add <npc id>
+    [f:green]add the NPC with the given ID to this room. note: this ID is the ID of the
+    NPC record and may be different from the ID of the spawned NPC record once
+    added to the room
+
+  [f:white:b]remove #<npc id>
+  remove <npc id>
+    [f:green]remove the NPC with the given ID from the room. note: this ID is the ID of
+    the spawned NPC record once it was added to the room and may be different
+    from the ID of the NPC that was spawned, ex: you 'add 5' (NPC #5) and a
+    Spawned NPC record is created with id 15, so to remove that NPC from the
+    room you need to 'remove 15' to remove Spawned NPC #15
+
+  [f:white:b]back
+    [f:green]exit the npc editor
+
+  [f:white:b]help
+    [f:green]show this help screen
+
+>>

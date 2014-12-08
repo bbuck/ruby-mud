@@ -17,6 +17,13 @@ module Scriptable
     def engines
       self._engines ||= []
     end
+
+    def reload_engine(id, script)
+      if engine = _engines[id]
+        engine.reset
+        engine.evaluate(script)
+      end
+    end
   end
 
   def reload_engine

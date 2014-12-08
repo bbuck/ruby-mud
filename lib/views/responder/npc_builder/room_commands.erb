@@ -1,14 +1,20 @@
 
 <%= full_line("=", color: "[f:white:b]") %>
 
+  [f:green]This NPC is currently located in <%= pluralize(room_count, "room") %>.
+
+  [f:white:b]list
+    [f:green]list the rooms the NPC is currently located in
+
   [f:white:b]search <query>
     [f:green]list up to 10 rooms with names matching the query
 
-  [f:white:b]set #<room number>
-  set <room number>
-    [f:green]set the room the NPC will belong to and exit this menu
+  [f:white:b]add #<room number>
+  add <room number>
+    [f:green]spawn the NPC in the given room, it is possible to have multiple copies of
+    the same NPC in the same room
 
   [f:white:b]back
-    [f:green]exit the npc room editor without making a change
+    [f:green]exit the npc room editor
 
 >>

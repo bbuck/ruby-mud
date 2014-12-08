@@ -8,8 +8,7 @@ module Input
       def write_room_builder_menu(room = nil)
         room = editing_room if room.nil?
         room.reload
-        text = Helpers::View.render("responder.room_builder.main_menu", {room: room})
-        write_without_prompt_or_newline(text)
+        render("responder.room_builder.main_menu", room: room, npc_count: room.npcs_in_room.count)
       end
 
       def write_edit_exit_menu(room = nil)
@@ -45,14 +44,7 @@ module Input
       end
 
       def write_edit_npc_menu
-        header = Helpers::Text.header_with_title("Edit NPCs", title_color: "[f:green]", line_color: "[f:white:b]")
-        footer = Helpers::Text.full_line("=", line_color: "[f:white:b]")
-        menu = <<-MENU.strip_heredoc
-          #{header}
-
-          #{footer}
-        MENU
-        write_without_prompt(menu)
+        render("responder.room_builder.npc_commands", npc_count: editing_room.npcs_in_room.count)
       end
 
       # --- Helpers --------------------------------------------------------------
@@ -66,6 +58,10 @@ module Input
         self.internal_state = {room: room}
         player.update_attribute(:room, room)
         write_room_builder_menu
+      end
+
+      def string_from_npcs(npcs)
+        npcs.map { |n| "[reset]##{n.id} - [f:cyan:b]#{n.display_name}" }.join("\n")
       end
 
       # --- Responders -----------------------------------------------------------
@@ -173,7 +169,7 @@ module Input
           end
         end
 
-        parse_input_with(/\A.*\z/) do
+        parse_input_with(/\Astats\z/) do
           write_edit_exit_menu
         end
       end
@@ -186,6 +182,63 @@ module Input
         end
       end
 
+      responders_for_mode :edit_npcs do
+        parse_input_with(/\Aback\z/) do
+          clear_mode
+          write_room_builder_menu
+        end
+
+        parse_input_with(/\Asearch (.+?)\z/) do |query|
+          npcs = ::NPC.name_like(query).limit(10)
+          if npcs.count > 0
+            npc_string = string_from_npcs(npcs)
+            write_without_prompt("\n#{npc_string}\n")
+          else
+            write_without_prompt("[f:green]No NPCs with names like \"#{query}\" where found. Maybe create them?")
+          end
+        end
+
+        parse_input_with(/\Alist\z/) do
+          if editing_room.npcs_in_room.count > 0
+            write_without_prompt("\n#{string_from_npcs(editing_room.npcs_in_room)}\n")
+          else
+            write_without_prompt("[f:green]This room is empty! Try adding some NPCs!")
+          end
+        end
+
+        # Spawn an NPC
+        parse_input_with(/\Aadd #?(\d+)\z/) do |npc_id|
+          begin
+            spawned_npc = ::NPC.find(npc_id).spawn(editing_room)
+            write_without_prompt("[f:green]#{spawned_npc.display_name}[f:green] spawned with id ##{spawned_npc.id}")
+          rescue ActiveRecord::RecordNotFound => e
+            write_without_prompt("[f:yellow:b]There is not NPC with the ID ##{npc_id}.")
+          end
+        end
+
+        # Remove a Spawned NPC
+        parse_input_with(/\Aremove #?(\d+)\z/) do |npc_id|
+          npcs = editing_room.npcs_in_room.where(id: npc_id).limit(1)
+          if npcs.count > 0
+            npcs.first.update_attributes(room: nil)
+          else
+            write_without_prompt("[f:green]No spawned NPC with the ID ##{npc_id} is in this room!")
+          end
+        end
+
+        parse_input_with(/\Anew (.+?)\z/) do |name|
+          npc = ::NPC.create(name: name, creator: player)
+          create_responder(NpcBuilder).edit_npc(npc) do
+            npc.spawn(editing_room)
+            write_edit_npc_menu
+          end
+        end
+
+        parse_input_with(/\Ahelp\z/) do
+          write_edit_npc_menu
+        end
+      end
+
       parse_input_with(/\A1\z/) do
         change_mode(:enter_room_name)
         write_without_prompt("[f:green]Enter a new title for this room:")
@@ -193,7 +246,7 @@ module Input
 
       parse_input_with(/\A2\z/) do
         create_responder(Editor).open_editor(editing_room, :description, allow_colors: true) do
-          create_responder(RoomBuilder).write_room_builder_menu
+          write_room_builder_menu
         end
       end
 
@@ -202,9 +255,14 @@ module Input
         write_edit_exit_menu
       end
 
+      parse_input_with(/\A4\z/) do
+        change_mode(:edit_npcs)
+        write_edit_npc_menu
+      end
+
       parse_input_with(/\A5\z/) do
         create_responder(Editor).open_editor(editing_room, :script, syntax: true) do
-          create_responder(RoomBuilder).write_room_builder_menu
+          write_room_builder_menu
         end
       end
 

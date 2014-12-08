@@ -44,13 +44,9 @@ module Input
         state = connection.input_state
         if responders.has_key?(state)
           responders[state].each do |responder_cls|
-            if blank_input
-              next unless responder_cls.allow_blank_input?
-            end
+            next if blank_input && !responder_cls.allow_blank_input?
             responder = responder_cls.new(connection)
-            if responder.respond_to(input)
-              return
-            end
+            return if responder.respond_to(input)
           end
         end
         unknown_input(connection) unless blank_input
