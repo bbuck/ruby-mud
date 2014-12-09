@@ -1,5 +1,8 @@
 class Room < ActiveRecord::Base
-  DEFAULT_SCRIPT = <<-SCRIPT.strip_heredoc
+  include Scriptable
+  extend Memoist
+
+  default_script <<-SCRIPT.strip_heredoc
     # @room {Room} the room this script is attached to
 
     # Called when the player signs in and "appears" in the room they were last
@@ -37,9 +40,6 @@ class Room < ActiveRecord::Base
       # doesn't see anything
     end
   SCRIPT
-
-  include Scriptable
-  extend Memoist
 
   Helpers::Exit.each do |exit_name|
     define_method exit_name do

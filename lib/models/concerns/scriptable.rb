@@ -5,8 +5,10 @@ module Scriptable
     attr_accessor :_engine
     class_attribute "_script_var_name"
     class_attribute "_engines"
+    class_attribute "_default_script"
 
     after_save :reload_engine, if: :script_changed?
+    before_save :set_default_script, if: :script_is_blank?
   end
 
   module ClassMethods
@@ -22,6 +24,14 @@ module Scriptable
       if engine = _engines[id]
         engine.reset
         engine.evaluate(script)
+      end
+    end
+
+    def default_script(str = nil)
+      if str.present?
+        self._default_script
+      else
+        self._default_script = str
       end
     end
   end
@@ -47,5 +57,15 @@ module Scriptable
     end
     update_script_variables(_engine)
     _engine
+  end
+
+  protected
+
+  def script_is_blank?
+    script.blank?
+  end
+
+  def set_default_script
+    self.script = self.class.default_script
   end
 end

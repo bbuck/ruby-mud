@@ -1,0 +1,12 @@
+module Input
+  module Responder
+    class <%= klass_name %> < Base
+      # --- Template Helpers -------------------------------------------------
+      # --- Public Helpers ---------------------------------------------------
+      # --- Responders -------------------------------------------------------
+      # --- Private Helpers --------------------------------------------------
+    end
+  end
+end
+
+Input::Manager.register_responder(:<%= state %>, Input::Responder::<%= klass_name %>)

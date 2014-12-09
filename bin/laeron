@@ -1,0 +1,136 @@
+#!/usr/bin/env ruby
+
+require 'rubygems'
+require 'bundler/setup'
+require 'active_support/core_ext/string/inflections'
+require "./main"
+
+module LaeronCLI
+  class Base < Thor
+    class_option :verbose, type: :boolean, default: true
+
+    no_tasks do
+      def render(template_name, values = {})
+        template_details = template_name.split(".")
+        template_details[-1] = template_details[-1] + ".erb"
+        file_path = ::Laeron.root.join("lib", "templates", *template_details).to_s
+        if File.exists?(file_path)
+          template = File.read(file_path)
+          template.erb(values)
+        else
+          raise "There is no such template #{template_name}"
+        end
+      end
+
+      def write_to_file(path, contents)
+        File.open(path, "w:utf-8") do |f|
+          f.write(contents)
+        end
+      end
+
+      def say_status(status, color, message)
+        shell.say_status(status, message, color) if options[:verbose] || parent_options[:verbose]
+      end
+    end
+  end
+
+  class Generate < Base
+    desc "migration <class_name> [fields...]", "Create an empty migration file in the db/migrate folder with the given name and fields."
+    def migration(klass, *fields)
+      klass = klass.underscore
+      glob_file_name = "*_" + klass + ".rb"
+      glob = Dir.glob(::Laeron.root.join("db", "migrate", glob_file_name))
+      if glob.length > 0
+        say_status(:exists, :yellow, Pathname.new(glob.first).relative_path_from(::Laeron.root))
+        exit(1)
+      end
+      file_name = "#{Time.now.to_i}_" + klass + ".rb"
+      file_path = ::Laeron.root.join("db", "migrate", file_name)
+      if klass.start_with?("create_")
+        table_name = klass.gsub("create_", "").downcase.pluralize
+        table_declarations = fields.map do |f|
+          name, type = f.split(":")
+          "      t.#{type.downcase} :#{name.underscore}"
+        end.join("\n")
+        file_contents = render("create_table_migration", klass_name: klass.camelize, table_fields: table_declarations, table_name: table_name)
+        say_status(:create, :green, file_path.relative_path_from(::Laeron.root))
+        write_to_file(file_path, file_contents)
+      else
+        file_contents = render("migration", klass_name: klass.camelize)
+        say_status(:create, :green, file_path.relative_path_from(::Laeron.root))
+        write_to_file(file_path, file_contents)
+      end
+    end
+
+    desc "responder <class>", "Create a new input responder with the given class name."
+    option :state, type: :string, banner: "<input state>", default: "standard", aliases: :s
+    def responder(klass)
+      klass_path = klass.split("/")
+      klass_path[-1] += ".rb"
+      namespace_path = klass.split("/").map { |i| i.camelize }.join("::")
+      responder_path = ::Laeron.root.join("lib", "input", "responders", *klass_path)
+      relative_responder_path = responder_path.relative_path_from(::Laeron.root).to_s
+      if File.exists?(responder_path)
+        say_status(:exists, :yellow, relative_responder_path)
+        exit(1)
+      else
+        file_contents = render("responder", klass_name: namespace_path, state: options[:state])
+        say_status(:create, :green, relative_responder_path)
+        write_to_file(responder_path, file_contents)
+      end
+    end
+  end
+
+  class Destroy < Base
+    desc "migration <class name>", "Delete a generated migration file."
+    def migration(klass)
+      klass = klass.underscore
+      glob_file_name = "*_" + klass + ".rb"
+      glob = Dir.glob(::Laeron.root.join("db", "migrate", glob_file_name))
+      if glob.length > 0
+        glob.each do |path|
+          say_status(:delete, :red, Pathname.new(path).relative_path_from(::Laeron.root))
+        end
+        FileUtils.rm(glob)
+      else
+        say_status(:failed, :yellow, "No migrations with the given name.")
+      end
+    end
+
+    desc "responder <class name>", "Delete a generated responder file."
+    def responder(klass)
+      klass_path = klass.split("/")
+      klass_path[-1] += ".rb"
+      namespace_path = klass.split("/").map { |i| i.camelize }.join("::")
+      responder_path = ::Laeron.root.join("lib", "input", "responders", *klass_path)
+      relative_responder_path = responder_path.relative_path_from(::Laeron.root).to_s
+      if File.exist?(responder_path)
+        say_status(:delete, :red, relative_responder_path)
+        FileUtils.rm(responder_path)
+      else
+        say_status(:failed, :yellow, "Responder file does not exist.")
+      end
+    end
+  end
+
+  class Laeron < Base
+    desc "server", "Run the LaeronMUD server and allow players to connect and play."
+    def server
+      say_status(:starting, :green, "Starting the server.")
+      ::Laeron.start_server
+    end
+
+    desc "console", "Run an interactive console session with the LaeronMUD environment loaded."
+    def console
+      Pry.start
+    end
+
+    desc "generate SUBCOMMAND ...ARGS", "Generate prebuilt files ready to begin developing on."
+    subcommand "generate", Generate
+
+    desc "destroy SUBCOMMAND ...ARGS", "Destroy prebuilt files."
+    subcommand "destroy", Destroy
+  end
+end
+
+LaeronCLI::Laeron.start(ARGV)

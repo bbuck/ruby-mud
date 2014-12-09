@@ -7,6 +7,8 @@ gem "eventmachine", "~> 1.0.3"
 
 gem "pg", "~> 0.17.1"
 
+gem "thor"
+
 # Rails plugins
 gem "activerecord", "~> 4.1.8"
 gem "activesupport", "~> 4.1.8"
