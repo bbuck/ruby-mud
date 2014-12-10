@@ -14,6 +14,7 @@ class SpawnedNonPlayableCharacter < ActiveRecord::Base
   scope :with_base_npc, ->(base_npc) { where(base_npc_id: base_npc.id) }
   scope :in_room, -> { where.not(room_id: nil) }
   scope :not_in_room, -> { where(room_id: nil) }
+  scope :name_like, ->(query) { joins(:base_npc).where("non_playable_characters.name ILIKE ?", "%#{query}%") }
 
   script_var_name :me
 
