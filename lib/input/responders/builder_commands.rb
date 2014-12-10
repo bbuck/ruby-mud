@@ -10,7 +10,7 @@ module Input
       # --- Helpers --------------------------------------------------------------
 
       def create_and_edit_room(room_name)
-        room = ::Room.create(name: room_name, description: DEFAULT_ROOM_DESCRIPTION, creator: player)
+        room = ::Room.create(name: room_name, description: Laeron.config.room.default_description, creator: player)
         create_responder(RoomBuilder).edit_room(room)
       end
 
@@ -49,7 +49,7 @@ module Input
       end
 
       parse_input_with(/\A@dig\z/) do
-        create_and_edit_room(DEFAULT_ROOM_NAME)
+        create_and_edit_room(Laeron.config.room.default_name)
       end
 
       parse_input_with(/\A@edit room #?(\d+)\z/) do |room_id|

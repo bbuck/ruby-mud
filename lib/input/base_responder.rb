@@ -108,16 +108,16 @@ module Input
         internal_state.delete(:mode)
       end
 
-      def store_original_state(callback = nil)
+      def store_original_state(&callback)
         self.original_state = {
           input_state: input_state,
           internal_state: internal_state,
         }
-        original_state[:callback] = callback if callback
+        original_state[:callback] = callback if block_given?
       end
 
       def restore_original_state
-        return unless original_state.present?
+        return unless stored_original_state?
         change_input_state(original_state[:input_state])
         self.internal_state = original_state[:internal_state]
         original_state[:callback].call if original_state[:callback]
@@ -140,9 +140,12 @@ module Input
         Laeron.config.logger
       end
 
-      def write_room_description(room = nil)
-        room = current_room if room.nil?
-        write_without_newline(room.display_text(player))
+      def write_room_description(room = current_room)
+        if room
+          write_without_newline(room.display_text(player))
+        else
+          write("[f:yellow:b]You are floating in space, everything appears black. You should [f:cyan:b]@dig[f:yellow:b] your first room.")
+        end
       end
 
       def player

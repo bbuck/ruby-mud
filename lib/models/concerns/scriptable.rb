@@ -29,9 +29,9 @@ module Scriptable
 
     def default_script(str = nil)
       if str.present?
-        self._default_script
-      else
         self._default_script = str
+      else
+        self._default_script
       end
     end
   end

@@ -60,8 +60,6 @@ class Room < ActiveRecord::Base
 
   scope :name_like, ->(name) { where("name ILIKE ?", "%#{name}%") }
 
-  before_save :set_default_script
-
   script_var_name :room
 
   # --- Player Actions -------------------------------------------------------
@@ -410,12 +408,4 @@ class Room < ActiveRecord::Base
     [:display_name, :transmit]
   end
   memoize :eleetscript_allow_methods
-
-  private
-
-  def set_default_script
-    if script.blank?
-      self.script = DEFAULT_SCRIPT
-    end
-  end
 end

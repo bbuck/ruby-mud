@@ -19,7 +19,7 @@ module Input
       end
 
       def edit_npc(npc, &block)
-        store_original_state(block) if block_given?
+        store_original_state(&wblock) if block_given?
         change_input_state(:npc_builder)
         self.internal_state = {npc: npc}
         player.update_attribute(:room, npc.room) if npc.room
