@@ -1,7 +1,4 @@
 class Input::Responder::Room < Input::Responder::Base
-  DEFAULT_ROOM_DESCRIPTION = "This room lacks a description."
-  DEFAULT_ROOM_NAME = "This room has not been named."
-
   DONT_SEE = [
     "There doesn't appear to be anything like that.",
     "You don't see anything like that.",

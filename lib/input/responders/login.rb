@@ -1,13 +1,12 @@
 module Input
   module Responder
     class Login < Base
-      VALID_USERNAME_RX = /\A[a-z]{2}[a-z'-]{0,17}[a-z]\z/i
       INVALID_NAME_SEQUENCE_RX = /'-|''|-'/
 
       # --- Helpers --------------------------------------------------------------
 
       def valid_username?(username)
-        if username =~ VALID_USERNAME_RX
+        if username =~ Laeron.config.login.valid_username
           if username.scan(/'/).count <= 2 && username.scan(/-/).count <= 1
             username.scan(INVALID_NAME_SEQUENCE_RX).count == 0
           else
@@ -19,21 +18,21 @@ module Input
       end
 
       def valid_password?(password)
-        password.length >= 8 && password.length <= 50
+        password =~ Laeron.config.login.valid_password
       end
 
       def write_enter_password_text(username)
-        write_without_prompt_or_newline("\n[f:yellow:b]Please enter a password for \"[f:cyan:b]#{username}[f:yellow:b]\":\n")
+        write_without_prompt("\n[f:yellow:b]Please enter a password for \"[f:cyan:b]#{username}[f:yellow:b]\":\n")
         write(Telnet::IAC_DONT_ECHO, raw: true)
       end
 
       def write_initial_greeting
-        write_without_prompt("Welcome to Laeron, please enter your character's name or type \"[f:white:b]new[reset]\"")
+        write_without_prompt("Welcome to Laeron, please enter your character's name or type \"[f:yellow:b]new[reset]\"")
       end
 
       def connect_player(new_player)
         connection.player = new_player
-        player.room.player_appears(player)
+        player.room.player_appears(player) if player.room
         ::Player.connect(player, connection)
         logger.info("Player #{player.username} has connected.")
         change_input_state(:standard)
@@ -48,11 +47,12 @@ module Input
             if ::Player.with_username(username).count > 0
               write_without_prompt("\nWe're sorry but a player has already taken the name \"[f:white:b]#{username}[f:yellow:b].\" Please choose another name.")
             else
-              self.internal_state = {mode: :create_password, username: username}
+              change_mode(:create_password)
+              internal_state[:username] = username
               write_enter_password_text(internal_state[:username])
             end
           else
-            write_without_prompt_or_newline(Helpers::View.render("responder.login.username_requirements"))
+            render("responder.login.username_requirements", :write_without_prompt_or_newline)
           end
         end
       end
@@ -72,12 +72,13 @@ module Input
       responders_for_mode :create_password do
         parse_input_with(/(.+)/) do |password|
           if valid_password?(password)
-            write_without_prompt("Please reenter your password:#{ANSI::HIDDEN}")
+            write_without_prompt("Please reenter your password:")
+            write(Telnet::IAC_DONT_ECHO, raw: true)
             change_mode(:confirm_password)
             internal_state[:password] = password
           else
             write_without_prompt("\n[f:red]That password is not valid.")
-            write_without_prompt(Helpers::View.render("responder.login.password_requirements"))
+            render("responder.login.password_requirements")
           end
         end
       end
@@ -86,7 +87,7 @@ module Input
         parse_input_with(/(.+)/) do |password|
           if password == internal_state[:password]
             # TODO: Fix origin room (should be from DB)
-            new_player = ::Player.new(username: internal_state[:username], password: password, room_id: 1)
+            new_player = ::Player.new(username: internal_state[:username], password: password, room_id: GameSetting.instance.initial_room_id)
             if new_player.save
               logger.info("#{new_player.username} has been created.")
               connect_player(new_player)
@@ -120,9 +121,9 @@ module Input
       end
 
       parse_input_with(/\Anew\z/) do
-        write_without_prompt(Helpers::View.render("responder.login.username_rules"))
+        render("responder.login.username_rules")
         write_without_prompt("[f:white:b]Please enter a name for your character that complies with the rules above:")
-        self.internal_state = {mode: :create_name}
+        change_mode(:create_name)
       end
 
       parse_input_with(/(.+)/) do |username|
@@ -131,13 +132,15 @@ module Input
           if valid_username?(username)
             write_without_prompt(Helpers::View.render("responder.login.username_rules"))
             write_without_prompt("Did you enter the name \"[f:white:b]#{username}[reset]\" correctly and does this name comply with the rules above [f:green:b](y/n)[reset]?")
-            self.internal_state = {mode: :confirm_name, username: username.capitalize}
+            change_mode(:confirm_name)
+            internal_state[username: username.capitalize
           else
             write_without_prompt("[f:yellow:b]The name \"[f:white:b]#{username.capitalize}[f:yellow:b]\" is not valid, please review the username requirements.")
-            write_without_prompt_or_newline(Helpers::View.render("responder.login.username_requirements"))
+            render("responder.login.username_requirements", :write_without_prompt_or_newline)
           end
         else
-          self.internal_state = {mode: :enter_password, player: players.first}
+          change_mode(:enter_password)
+          internal_state[:player] = player
           write_without_prompt_or_newline("\nEnter the password for \"[f:white:b]#{username.capitalize}[reset]\"\n#{ANSI::HIDDEN}")
         end
       end
