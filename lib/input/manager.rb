@@ -65,5 +65,5 @@ module Input
   end
 end
 
-require "input/base_responder"
+require "input/base"
 Laeron.require_all(Laeron.root.join("lib", "input", "responders", "**", "*"))

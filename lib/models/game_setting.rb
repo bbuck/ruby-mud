@@ -7,7 +7,7 @@ class GameSetting < ActiveRecord::Base
     end
 
     def display_title
-      instance.game_title.erb({game_title: instance.content_title})
+      instance.game_title.erb({content_title: instance.content_title})
     end
   end
 end

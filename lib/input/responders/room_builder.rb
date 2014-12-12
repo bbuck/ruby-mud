@@ -95,9 +95,8 @@ module Input
 
         parse_input_with(/\A(#{EXITS_RX}) #?(\d+)( here)?\z/) do |direction, room_id, here|
           if ::Room.where(id: room_id).count > 0
-            editing_room.add_exit(direction.to_sym, room_id, {link_other: here.nil?})
+            editing_room.add_exit(direction.to_sym, room_id, link_other: here.nil?)
             write_without_prompt("[f:green]Linked #{direction} to room ##{room_id}!")
-
             write_edit_exit_menu
           else
             write_without_prompt("[f:yellow:b]There is not room with the id ##{room_id}!")

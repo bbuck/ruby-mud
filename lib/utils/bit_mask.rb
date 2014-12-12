@@ -5,11 +5,15 @@ class BitMask
     end
 
     def dump(obj)
-      unless obj.is_a?(self)
+      unless obj.is_a?(self) || obj.is_a?(Fixnum)
         raise ::ActiveRecord::SerializationTypeMismatch, "Attribute was supposed to be a #{self} but was #{obj.class} instead. -- #{obj.inspect}"
       end
 
-      obj.value
+      if obj.is_a?(self)
+        obj.value
+      else
+        obj
+      end
     end
   end
 

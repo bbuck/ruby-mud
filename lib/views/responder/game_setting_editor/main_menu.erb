@@ -4,9 +4,14 @@
 
   [f:white:b][1][f:green] Edit Game Title
   [f:white:b][2][f:green] Edit Content Title
-  [f:white:b][3][f:green] Set Initial Room
+  [f:white:b][3][f:green] Show Title
+<% if initial_room -%>
+  [f:white:b][4][f:green] Set Initial Room [f:white:b](<%= initial_room.display_name %>[f:white:b])
+<% else -%>
+  [f:white:b][4][f:green] Set Initial Room [f:white:](not a valid room)
+<% end -%>
 
-  [f:white:b][4][f:green] Exit Editor
+  [f:white:b][5][f:green] Exit Editor
 
 <%= full_line("-", color: "[f:white:b]") %>
 

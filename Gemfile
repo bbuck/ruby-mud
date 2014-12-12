@@ -7,7 +7,9 @@ gem "eventmachine", "~> 1.0.3"
 
 gem "pg", "~> 0.17.1"
 
-gem "thor"
+# CLI related
+gem "thor", "~> 0.19.1"
+gem "highline", "~> 1.6.21"
 
 # Rails plugins
 gem "activerecord", "~> 4.1.8"

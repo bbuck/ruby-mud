@@ -125,6 +125,33 @@ module LaeronCLI
       Pry.start
     end
 
+    desc "super_admin", "Create a super admin level user that will be able to access the application."
+    option :username, type: :string, banner: "<username>", aliases: :u
+    option :password, type: :string, banner: "<password>", aliases: :p
+    def super_admin
+      username = if options[:username] && ::Laeron::Validator.valid_username?(options[:username])
+        options[:username]
+      else
+        loop do
+          un = ask("Username >>")
+          break un if ::Laeron::Validator.valid_username?(un)
+        end
+      end
+      password = if options[:password] && ::Laeron::Validator.valid_password?(options[:password])
+        options[:password]
+      else
+        loop do
+          pw = ask("Password >>") do |q|
+            q.validate = Laeron.config.login.valid_password
+            q.echo = "*"
+          end
+          break pw if ::Laeron::Validator.valid_password?(pw)
+        end
+      end
+      say_status(:create, :green, "Admin \"#{username}\" created.")
+      ::Player.create(username: username, password: password, permissions: ::Game::Permissions.admin_permissions, room_id: GameSetting.instance.initial_room_id)
+    end
+
     desc "generate SUBCOMMAND ...ARGS", "Generate prebuilt files ready to begin developing on."
     subcommand "generate", Generate
 

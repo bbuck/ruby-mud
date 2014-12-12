@@ -24,8 +24,7 @@ class Room < ActiveRecord::Base
     # left by
     # param player {Player} the player who left
     # param direction {Symbol} the direction the player left
-    player_left do |player, direction|
-      # do something when the player leaves the room
+    player_left do |player, direction| # do something when the player leaves the room
     end
 
     # Called when the player types "look X" where X is not an object, player or
@@ -145,7 +144,7 @@ class Room < ActiveRecord::Base
         new_exit[:lock] = { unlocked: false, timer: options[:lock], lock_at: nil, consume_key: false }
       end
       save
-      if options[:link_opposite]
+      if options[:link_other]
         other_room = (destination.kind_of?(Room) ? destination : Room.find(destination))
         other_room.add_exit(Helpers::Exit.inverse(dir), self.id)
       end

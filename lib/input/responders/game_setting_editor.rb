@@ -1,10 +1,17 @@
 module Input
   module Responder
     class GameSettingEditor < Base
+      allow_blank_input
+
       # --- Template Helpers -------------------------------------------------
 
       def write_game_setting_menu
-        render("responder.game_setting_editor.main_menu", {settings: game_settings})
+        begin
+          initial_room = ::Room.find(game_settings.initial_room_id)
+        rescue ActiveRecord::RecordNotFound => e
+          initial_room = nil
+        end
+        render("responder.game_setting_editor.main_menu", {settings: game_settings, initial_room: initial_room})
       end
 
       def write_set_room_commands_help
@@ -57,6 +64,13 @@ module Input
         end
       end
 
+      responders_for_mode :show_game_title do
+        parse_input_with(/\A.*\z/) do
+          clear_mode
+          write_game_setting_menu
+        end
+      end
+
       parse_input_with(/\A1\z/) do
         create_responder(Editor).open_editor(game_settings, :game_title, allow_colors: true) do
           write_game_setting_menu
@@ -69,11 +83,17 @@ module Input
       end
 
       parse_input_with(/\A3\z/) do
+        change_mode(:show_game_title)
+        write_without_prompt(GameSetting.display_title)
+        write_without_prompt("[f:green]Hit enter to show menu.")
+      end
+
+      parse_input_with(/\A4\z/) do
         change_mode(:set_initial_room)
         write_set_room_commands_help
       end
 
-      parse_input_with(/\A4\z/) do
+      parse_input_with(/\A5\z/) do
         change_input_state(:standard)
         write_room_description
       end

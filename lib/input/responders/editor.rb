@@ -127,7 +127,7 @@ module Input
 
       def open_editor(object, property, opts = {}, &block)
         opts = default_open_editor_options.merge(opts)
-        store_original_state(block)
+        store_original_state(&block)
         change_input_state(:editor)
         self.internal_state = {
           object: object,

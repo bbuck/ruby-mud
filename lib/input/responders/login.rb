@@ -1,25 +1,7 @@
 module Input
   module Responder
     class Login < Base
-      INVALID_NAME_SEQUENCE_RX = /'-|''|-'/
-
       # --- Helpers --------------------------------------------------------------
-
-      def valid_username?(username)
-        if username =~ Laeron.config.login.valid_username
-          if username.scan(/'/).count <= 2 && username.scan(/-/).count <= 1
-            username.scan(INVALID_NAME_SEQUENCE_RX).count == 0
-          else
-            false
-          end
-        else
-          false
-        end
-      end
-
-      def valid_password?(password)
-        password =~ Laeron.config.login.valid_password
-      end
 
       def write_enter_password_text(username)
         write_without_prompt("\n[f:yellow:b]Please enter a password for \"[f:cyan:b]#{username}[f:yellow:b]\":\n")
@@ -43,7 +25,7 @@ module Input
       responders_for_mode :create_name do
         parse_input_with(/(.+)/) do |username|
           username = username.capitalize
-          if valid_username?(username)
+          if Laeron::Validator.valid_username?(username)
             if ::Player.with_username(username).count > 0
               write_without_prompt("\nWe're sorry but a player has already taken the name \"[f:white:b]#{username}[f:yellow:b].\" Please choose another name.")
             else
@@ -71,7 +53,7 @@ module Input
 
       responders_for_mode :create_password do
         parse_input_with(/(.+)/) do |password|
-          if valid_password?(password)
+          if Laeron::Validator.valid_password?(password)
             write_without_prompt("Please reenter your password:")
             write(Telnet::IAC_DONT_ECHO, raw: true)
             change_mode(:confirm_password)
@@ -129,18 +111,18 @@ module Input
       parse_input_with(/(.+)/) do |username|
         players = ::Player.with_username(username)
         if players.count == 0
-          if valid_username?(username)
+          if Laeron::Validator.valid_username?(username)
             write_without_prompt(Helpers::View.render("responder.login.username_rules"))
             write_without_prompt("Did you enter the name \"[f:white:b]#{username}[reset]\" correctly and does this name comply with the rules above [f:green:b](y/n)[reset]?")
             change_mode(:confirm_name)
-            internal_state[username: username.capitalize
+            internal_state[:username] = username.capitalize
           else
             write_without_prompt("[f:yellow:b]The name \"[f:white:b]#{username.capitalize}[f:yellow:b]\" is not valid, please review the username requirements.")
             render("responder.login.username_requirements", :write_without_prompt_or_newline)
           end
         else
           change_mode(:enter_password)
-          internal_state[:player] = player
+          internal_state[:player] = players.first
           write_without_prompt_or_newline("\nEnter the password for \"[f:white:b]#{username.capitalize}[reset]\"\n#{ANSI::HIDDEN}")
         end
       end

@@ -30,7 +30,7 @@ rescue ActiveRecord::ConnectionNotEstablished => e
 end
 
 # Server Files
-require "input/input_manager"
+require "input/manager"
 require "client_connection"
 
 # Load configuration
