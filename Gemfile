@@ -1,9 +1,9 @@
-ruby "2.1.5"
+ruby "2.2.1"
 
 source "https://rubygems.org"
 
 gem "rake", "~> 10.3.2"
-gem "eventmachine", "~> 1.0.3"
+gem "eventmachine", "~> 1.0.7"
 
 gem "pg", "~> 0.17.1"
 

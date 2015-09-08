@@ -1,6 +1,8 @@
 development: &defaults
   adapter: postgresql
   database: laeron_development
+  user: postgres
+  password: vagrant
   host: localhost
 
 test:

@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 1418041009) do
+ActiveRecord::Schema.define(version: 1418154974) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -88,6 +88,16 @@ ActiveRecord::Schema.define(version: 1418041009) do
     t.text     "script"
     t.integer  "creator_id"
     t.text     "exits"
+  end
+
+  create_table "skills", force: true do |t|
+    t.string   "name"
+    t.string   "attribute"
+    t.string   "attr_formula"
+    t.integer  "max_skill_level"
+    t.integer  "exp_per_level"
+    t.datetime "created_at"
+    t.datetime "updated_at"
   end
 
   create_table "spawned_non_playable_characters", force: true do |t|
