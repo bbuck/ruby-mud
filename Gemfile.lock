@@ -57,5 +57,8 @@ DEPENDENCIES
   rake (~> 10.3.2)
   thor (~> 0.19.1)
 
+RUBY VERSION
+   ruby 2.2.1p85
+
 BUNDLED WITH
-   1.10.5
+   1.13.7

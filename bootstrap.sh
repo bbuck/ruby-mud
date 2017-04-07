@@ -13,4 +13,5 @@ sudo -u vagrant bash --login <<'SETUP'
   rake db:migrate
 
   bin/laeron super_admin --username=admin --password=password
+  bin/laeron server &
 SETUP
